@@ -135,17 +135,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <script>
         // --- 常量配置 (真实物理参数) ---
         const CONFIG = {
             runwayZ: 4000,       // 跑道起点Z坐标
-            runwayX: -1500,      // 跑道中心X坐标
+            runwayX: -2000,      // 跑道中心X坐标
             
             // 物理参数 - 模拟一架重型喷气式战斗机或轻型商务机
             mass: 18000,         // 18吨 (真实重量感)
             maxThrust: 420000,   // 420kN (强大的推力以匹配重量)
             dragCoeff: 0.035,    // 阻力系数
-            liftCoeff: 0.6,    // 升力系数 (稍微调高以便更好起飞)
+            liftCoeff: 0.6,      // 升力系数 (稍微调高以便更好起飞)
             wingArea: 75,        // 机翼面积
             gravity: 9.81,       // 标准重力
             
@@ -158,15 +159,14 @@
 
         // --- 全局变量 ---
         let scene, camera, renderer, clock;
-        // 修正 1：移除 createDetailedPlane 函数内部的重复声明
         let planeGroup; 
-        let propL, propR; // propL/propR 似乎在 GLB 模型中不需要，但保留声明
+        let propL, propR; 
         let shadowPlane; 
         
         let input = { w:0, s:0, a:0, d:0, q:0, e:0, shift:0, space:0 };
         let cameraMode = 0; // 0: Chase (尾随), 1: Cockpit (座舱), 2: Orbital (全景/塔台)
 
-        // **新增**：鼠标控制变量
+        // 鼠标控制变量
         let isDragging = false;
         let mouseX = 0, mouseY = 0;
         let orbitAlpha = 0; // 水平旋转角度
@@ -192,7 +192,6 @@
             animate();
         }
         
-        // 修正 2：将 startGame 显式挂载到 window，确保 HTML onclick 能找到它
         window.startGame = startGame; 
 
         function init() {
@@ -242,213 +241,194 @@
             document.addEventListener('keydown', (e) => handleKey(e, 1));
             document.addEventListener('keyup', (e) => handleKey(e, 0));
             
-            // **新增**：鼠标监听器
+            // 鼠标监听器
             renderer.domElement.addEventListener('mousedown', onMouseDown);
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
             window.addEventListener('wheel', onMouseWheel);
         }
 
-        // --- 物理引擎核心 (Newtonian Physics) ---
-        
         // --- 物理引擎核心 (最终修正版 - 优化起飞平稳性) ---
-function updatePhysics(dt) {
-    // 1. 输入处理
-    if (input.shift) physics.throttle = Math.min(1.0, physics.throttle + dt * 0.4);
-    if (input.space) physics.throttle = Math.max(0.0, physics.throttle - dt * 1.5);
-    
-    // 2. 基础矢量获取
-    const pos = physics.pos;
-    const vel = physics.vel;
-    const rot = physics.quat;
-    
-    let speed = vel.length();
+        function updatePhysics(dt) {
+            // 1. 输入处理
+            if (input.shift) physics.throttle = Math.min(1.0, physics.throttle + dt * 0.4);
+            if (input.space) physics.throttle = Math.max(0.0, physics.throttle - dt * 1.5);
+            
+            // 2. 基础矢量获取
+            const pos = physics.pos;
+            const vel = physics.vel;
+            const rot = physics.quat;
+            
+            let speed = vel.length();
 
-    // 机身坐标系方向
-    const vForward = new THREE.Vector3(0, 0, -1).applyQuaternion(rot).normalize();
-    const vUp = new THREE.Vector3(0, 1, 0).applyQuaternion(rot).normalize();
-    const vRight = new THREE.Vector3(1, 0, 0).applyQuaternion(rot).normalize(); // 用于迎角修正
-    
-    // 3. 速度和迎角计算
-    const groundHeight = 2.8;
-    physics.grounded = (pos.y <= groundHeight + 0.1); 
+            // 机身坐标系方向
+            const vForward = new THREE.Vector3(0, 0, -1).applyQuaternion(rot).normalize();
+            const vUp = new THREE.Vector3(0, 1, 0).applyQuaternion(rot).normalize();
+            
+            // 3. 速度和迎角计算
+            const groundHeight = 2.8;
+            physics.grounded = (pos.y <= groundHeight + 0.1); 
 
-    // 计算前向空速 (投影到机头方向的速度)
-    const forwardSpeed = vel.dot(vForward); 
-    
-    // ******** 修正 1：计算迎角（Angle of Attack, AoA） ********
-    // 速度矢量方向
-    const velDir = vel.clone().normalize();
-    // 计算机头方向与速度方向的夹角 (弧度)
-    let aoa = Math.acos(vForward.dot(velDir));
-    
-    // 使用垂直方向投影判断迎角的正负 (速度矢量在机头上方为负迎角)
-    if (velDir.dot(vUp) > 0) { 
-        aoa = -aoa;
-    }
-    
-    // 迎角限制在合理范围，如 -15度 到 15度 (约 0.26 弧度)
-    aoa = THREE.MathUtils.clamp(aoa, -0.26, 0.26); 
-    
-    // 升力系数因子：基于迎角，模拟升力曲线。
-    // 增加对迎角的敏感度，确保小仰角也能产生足够升力
-    let liftFactor = aoa * 3.0; 
-    // 确保迎角为正或零时，liftFactor至少为 0.1 (保证基础升力，防止数值波动)
-    liftFactor = Math.max(liftFactor, 0.1); 
+            // 计算前向空速 (投影到机头方向的速度)
+            const forwardSpeed = vel.dot(vForward); 
+            
+            // ******** 修正 1：计算迎角（Angle of Attack, AoA） ********
+            // 速度矢量方向
+            const velDir = vel.clone().normalize();
+            // 计算机头方向与速度方向的夹角 (弧度)
+            let aoa = Math.acos(vForward.dot(velDir));
+            
+            // 使用垂直方向投影判断迎角的正负 (速度矢量在机头上方为负迎角)
+            if (velDir.dot(vUp) > 0) { 
+                aoa = -aoa;
+            }
+            
+            // 迎角限制在合理范围，如 -15度 到 15度 (约 0.26 弧度)
+            aoa = THREE.MathUtils.clamp(aoa, -0.26, 0.26); 
+            
+            // 升力系数因子：基于迎角，模拟升力曲线。
+            // 增加对迎角的敏感度，确保小仰角也能产生足够升力
+            let liftFactor = aoa * 3.0; 
+            // 确保迎角为正或零时，liftFactor至少为 0.1 (保证基础升力，防止数值波动)
+            liftFactor = Math.max(liftFactor, 0.1); 
 
-    // VR 速度阈值：140 KTS (约 72 m/s)
-    const V_R_SPEED = 72; 
+            // VR 速度阈值：140 KTS (约 72 m/s)
+            const V_R_SPEED = 72; 
 
-    // --- 核心修复：消除漂移 (气动稳定性) ---
-    if (!physics.grounded && speed > 1.0) {
-        // 速度矢量朝向机头方向插值，消除侧滑和垂直漂移
-        const targetVel = vForward.clone().multiplyScalar(speed);
-        const stability = Math.min(speed / 300, 1.0) * 0.15;
-        vel.lerp(targetVel, stability);
-    }
+            // --- 核心修复：消除漂移 (气动稳定性) ---
+            if (!physics.grounded && speed > 1.0) {
+                // 速度矢量朝向机头方向插值，消除侧滑和垂直漂移
+                const targetVel = vForward.clone().multiplyScalar(speed);
+                const stability = Math.min(speed / 300, 1.0) * 0.15;
+                vel.lerp(targetVel, stability);
+            }
 
-    function getCl(aoa) {
-    const aoa_rad = aoa; // 你已经用弧度，因此不改
-    const cl_max = 1.3;       // 典型机翼最大升力系数
-    const stall_aoa = 0.22;   // ~12.5°，典型失速角
-    const slope = 2 * Math.PI; // 理论升力斜率（2π ≈ 6.28）
+            // 简化升力系数函数 (保留原代码中的 if-else 逻辑)
+            // function getCl(aoa) { ... }
 
-    // 1) 线性区
-    if (Math.abs(aoa_rad) <= stall_aoa) {
-        return slope * aoa_rad;
-    }
+            // --- 力学累加 ---
+            const force = new THREE.Vector3(0, 0, 0);
+            const airDensity = 1.225;
 
-    // 2) 失速区（平滑衰减，而不是突然掉）
-    const sign = Math.sign(aoa_rad);
-    const excess = Math.abs(aoa_rad) - stall_aoa;
+            // A. 重力
+            force.add(new THREE.Vector3(0, -CONFIG.gravity * CONFIG.mass, 0));
 
-    return sign * cl_max * Math.exp(-excess * 15);
-}
+            // B. 推力
+            const thrust = vForward.clone().multiplyScalar(physics.throttle * CONFIG.maxThrust);
+            force.add(thrust);
 
-    // --- 力学累加 ---
-    const force = new THREE.Vector3(0, 0, 0);
-    const airDensity = 1.225;
-
-    // A. 重力
-    force.add(new THREE.Vector3(0, -CONFIG.gravity * CONFIG.mass, 0));
-
-    // B. 推力
-    const thrust = vForward.clone().multiplyScalar(physics.throttle * CONFIG.maxThrust);
-    force.add(thrust);
-
-    // C. 升力 (Lift) - 垂直于机翼
-    const speedSq = forwardSpeed * forwardSpeed;
-    let liftForce = 0;
-    if (forwardSpeed > 0) {
-        // L = 0.5 * rho * v^2 * Cl * A * liftFactor
-        liftForce = 0.5 * airDensity * speedSq * CONFIG.liftCoeff * CONFIG.wingArea * liftFactor;
-    }
-    
-    // 升力矢量 (应用到 Local Up 方向)
-    const liftVec = vUp.clone().multiplyScalar(liftForce);
-    force.add(liftVec);
+            // C. 升力 (Lift) - 垂直于机翼
+            const speedSq = forwardSpeed * forwardSpeed;
+            let liftForce = 0;
+            if (forwardSpeed > 0) {
+                // L = 0.5 * rho * v^2 * Cl * A * liftFactor
+                liftForce = 0.5 * airDensity * speedSq * CONFIG.liftCoeff * CONFIG.wingArea * liftFactor;
+            }
+            
+            // 升力矢量 (应用到 Local Up 方向)
+            const liftVec = vUp.clone().multiplyScalar(liftForce);
+            force.add(liftVec);
 
 
-    // D. 阻力 (Drag)
-    const dragMag = 0.5 * airDensity * (speed * speed) * CONFIG.dragCoeff * CONFIG.wingArea;
-    if (speed > 0) {
-        const dragDir = vel.clone().normalize().negate();
-        const brakeDrag = input.space ? 5.0 : 1.0; 
-        force.add(dragDir.multiplyScalar(dragMag * brakeDrag));
-    }
+            // D. 阻力 (Drag)
+            const dragMag = 0.5 * airDensity * (speed * speed) * CONFIG.dragCoeff * CONFIG.wingArea;
+            if (speed > 0) {
+                const dragDir = vel.clone().normalize().negate();
+                const brakeDrag = input.space ? 5.0 : 1.0; 
+                force.add(dragDir.multiplyScalar(dragMag * brakeDrag));
+            }
 
-    // ******** 修正 2：地面接触反作用力（消除“粘地”和“弹射”） ********
-    const groundDelta = pos.y - groundHeight;
-    if (groundDelta <= 0.1) { // 检查是否接近地面或在地面以下
-        // 弹簧力：在接近地面时，模拟起落架的弹簧反作用力
-        const springForce = CONFIG.mass * CONFIG.gravity * 3.0 * (0.1 - groundDelta); 
-        
-        // 阻尼力：抵消地面冲击和垂直震荡
-        const dampForce = -vel.y * CONFIG.mass * 0.5; 
-        
-        // 总反作用力
-        const reactionForce = new THREE.Vector3(0, springForce + dampForce, 0);
-        force.add(reactionForce);
+            // ******** 修正 2：地面接触反作用力（消除“粘地”和“弹射”） ********
+            const groundDelta = pos.y - groundHeight;
+            if (groundDelta <= 0.1) { // 检查是否接近地面或在地面以下
+                // 弹簧力：在接近地面时，模拟起落架的弹簧反作用力
+                const springForce = CONFIG.mass * CONFIG.gravity * 3.0 * (0.1 - groundDelta); 
+                
+                // 阻尼力：抵消地面冲击和垂直震荡
+                const dampForce = -vel.y * CONFIG.mass * 0.5; 
+                
+                // 总反作用力
+                const reactionForce = new THREE.Vector3(0, springForce + dampForce, 0);
+                force.add(reactionForce);
 
-        // 地面摩擦
-        const friction = vel.clone().multiplyScalar(-2000);
-        friction.y = 0; // 只影响水平速度
-        force.add(friction);
-        
-        // 确保不穿透地面
-        if (pos.y < groundHeight) {
-            pos.y = groundHeight;
+                // 地面摩擦
+                const friction = vel.clone().multiplyScalar(-2000);
+                friction.y = 0; // 只影响水平速度
+                force.add(friction);
+                
+                // 确保不穿透地面
+                if (pos.y < groundHeight) {
+                    pos.y = groundHeight;
+                }
+            }
+
+
+            // --- 积分计算 (F=ma) ---
+            physics.acc.copy(force.divideScalar(CONFIG.mass));
+            physics.vel.add(physics.acc.clone().multiplyScalar(dt));
+            physics.pos.add(physics.vel.clone().multiplyScalar(dt));
+            
+            // --- 旋转控制 ---
+            // 气动控制效率随着速度增加而提高
+            const aeroFactor = Math.min(Math.max((forwardSpeed / 100), 0.5), 1.0); 
+
+            let targetRoll = (input.a - input.d) * CONFIG.rollSpeed * aeroFactor;
+            let targetYaw = (input.q - input.e) * CONFIG.yawSpeed * aeroFactor;
+
+            // 接地时，限制滚转，增加转向效率
+            if (physics.grounded && forwardSpeed < V_R_SPEED) {
+                targetRoll = 0; 
+                targetYaw = (input.q - input.e) * 0.5;
+            } else if (physics.grounded) {
+                // 高速滑行时，方向舵和副翼都可以用来地面转向
+                targetYaw = (input.q - input.e + (input.a - input.d) * 0.5); 
+            }
+            
+
+            const targetRot = new THREE.Vector3(
+                (input.s - input.w) * CONFIG.pitchSpeed * aeroFactor, 
+                targetYaw,   
+                targetRoll   
+            );
+
+            physics.rotVel.lerp(targetRot, dt * CONFIG.rotDamping);
+
+            const deltaRot = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+                physics.rotVel.x * dt,
+                physics.rotVel.y * dt,
+                physics.rotVel.z * dt,
+                'XYZ'
+            ));
+            physics.quat.multiply(deltaRot).normalize();
+
+
+            // --- UI 逻辑 & 坠毁判定 ---
+            const centerWarn = document.getElementById('center-warning');
+            const speedKnots = Math.floor(speed * 1.94); 
+
+            const inRunwayArea = (pos.x > CONFIG.runwayX - 1000 && pos.x < CONFIG.runwayX + 1000 && pos.y < groundHeight + 1.0);
+            
+            if (physics.crashed) {
+                // 如果已经坠毁，保持警告状态
+            }
+            else if (physics.grounded && speedKnots > 20 && !inRunwayArea) {
+                centerWarn.style.display = 'block';
+                centerWarn.innerText = "CRASH: OFF-RUNWAY LANDING";
+                
+                physics.vel.set(0, 0, 0);
+                physics.throttle = 0;
+                physics.crashed = true;
+            } 
+            else if (!physics.grounded && speedKnots < 135 && speedKnots > 20) {
+                centerWarn.style.display = 'block';
+                centerWarn.innerText = `STALL WARNING (V=${speedKnots} KTS)`;
+                
+            } else {
+                centerWarn.style.display = 'none';
+            }
         }
-    }
 
-
-    // --- 积分计算 (F=ma) ---
-    physics.acc.copy(force.divideScalar(CONFIG.mass));
-    physics.vel.add(physics.acc.clone().multiplyScalar(dt));
-    physics.pos.add(physics.vel.clone().multiplyScalar(dt));
-    
-    // --- 旋转控制（保持不变） ---
-    // 气动控制效率随着速度增加而提高
-    const aeroFactor = Math.min(Math.max((forwardSpeed / 100), 0.5), 1.0); 
-
-    let targetRoll = (input.a - input.d) * CONFIG.rollSpeed * aeroFactor;
-    let targetYaw = (input.q - input.e) * CONFIG.yawSpeed * aeroFactor;
-
-    // 接地时，限制滚转，增加转向效率
-    if (physics.grounded && forwardSpeed < V_R_SPEED) {
-        targetRoll = 0; 
-        targetYaw = (input.q - input.e) * 0.5;
-    } else if (physics.grounded) {
-         // 高速滑行时，方向舵和副翼都可以用来地面转向
-         targetYaw = (input.q - input.e + (input.a - input.d) * 0.5); 
-    }
-    
-
-    const targetRot = new THREE.Vector3(
-        (input.s - input.w) * CONFIG.pitchSpeed * aeroFactor, 
-        targetYaw,   
-        targetRoll   
-    );
-
-    physics.rotVel.lerp(targetRot, dt * CONFIG.rotDamping);
-
-    const deltaRot = new THREE.Quaternion().setFromEuler(new THREE.Euler(
-        physics.rotVel.x * dt,
-        physics.rotVel.y * dt,
-        physics.rotVel.z * dt,
-        'XYZ'
-    ));
-    physics.quat.multiply(deltaRot).normalize();
-
-
-    // --- UI 逻辑 & 坠毁判定（保持不变） ---
-    const centerWarn = document.getElementById('center-warning');
-    const speedKnots = Math.floor(speed * 1.94); 
-
-    const inRunwayArea = (pos.x > CONFIG.runwayX - 1000 && pos.x < CONFIG.runwayX + 1000 && pos.y < groundHeight + 1.0);
-    
-    if (physics.crashed) {
-        // 如果已经坠毁，保持警告状态
-    }
-    else if (physics.grounded && speedKnots > 20 && !inRunwayArea) {
-        centerWarn.style.display = 'block';
-        centerWarn.innerText = "CRASH: OFF-RUNWAY LANDING";
-        
-        physics.vel.set(0, 0, 0);
-        physics.throttle = 0;
-        physics.crashed = true;
-    } 
-    else if (!physics.grounded && speedKnots < 135 && speedKnots > 20) {
-        centerWarn.style.display = 'block';
-        centerWarn.innerText = `STALL WARNING (V=${speedKnots} KTS)`;
-        
-    } else {
-        centerWarn.style.display = 'none';
-    }
-}
-
-        // --- 视觉构建：写实风格 (省略不变部分) ---
-        // --- 视觉构建：写实风格 (省略不变部分) ---
+        // --- 视觉构建：写实风格 ---
         function createRealisticWorld() {
             const simplex = new SimplexNoise();
             const size = 60000;
@@ -505,40 +485,44 @@ function updatePhysics(dt) {
             terrain.receiveShadow = true;
             scene.add(terrain);
 
-            // 🚀 2. 加载机场跑道 (Runway) GLB 模型
+            // 🚀 2. 加载机场跑道 (Runway) GLTF 模型
+            // 🚀 2. 加载机场跑道 (Runway) GLTF 模型
             const runwayLoader = new THREE.GLTFLoader();
+            
+            // --- Draco 配置 Start ---
+            const dracoLoaderRunway = new THREE.DRACOLoader();
+            // 注意：这里设置了 DRACO 解码器的路径。
+            // 确保你的服务器上 'draco' 文件夹中包含 'draco_wasm_wrapper.js' 和 'draco_decoder.wasm' 文件。
+            // 如果你使用 CDN，通常可以指向 Three.js 示例目录下的 CDN 路径。
+            dracoLoaderRunway.setDecoderPath( 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/' ); 
+            runwayLoader.setDRACOLoader( dracoLoaderRunway );
+            // --- Draco 配置 End ---
+
             runwayLoader.load(
-                'runway.glb', // 您的跑道模型路径
+                'runway.glb', // 假设您的跑道模型使用 .glb 且可能包含 Draco 压缩
                 function (gltf) {
+                    // ... (保持原有的加载成功代码)
                     const loadedRunway = gltf.scene;
 
-                    // 根据您的 runway.glb 模型需要进行调整：
-                    // 通常 GLB 模型是 Y 轴向上，Z 轴向前。
-                    // 确保它与您的世界坐标系对齐 (例如，如果您的 GLB 跑道是水平的，
-                    // 并且您希望它位于 CONFIG.runwayX 的位置，可能需要调整)
-
-                    // 示例：缩放、旋转和位置
-                    loadedRunway.scale.set(9, 9, 9); // 根据模型实际大小调整
-                    loadedRunway.position.set(-700, 0, 3300); // 放置在跑道中心 X 坐标，地面 Y
-                    loadedRunway.rotation.y = Math.PI / 2; 
+                    // 示例：缩放、旋转和位置 (根据您的模型实际调整)
+                    loadedRunway.scale.set(0.1, 0.1, 0.1); 
+                    loadedRunway.position.set(-760, 1, 3800); 
+                    //loadedRunway.rotation.y = Math.PI / 2; 
 
                     loadedRunway.traverse(c => {
                         if (c.isMesh) {
                             c.castShadow = true;
                             c.receiveShadow = true;
-                            // 如果模型材质看起来太亮或太暗，可以调整
-                            // c.material.roughness = 0.8; 
-                            // c.material.metalness = 0.1;
                         }
                     });
                     scene.add(loadedRunway);
-                    console.log('Runway model runway.glb loaded successfully!');
+                    console.log('Runway model runway.gltf loaded successfully!');
                 },
                 function (xhr) {
                     console.log('Runway loading: ' + (xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
                 },
                 function (error) {
-                    console.error('An error occurred while loading the runway model:', error);
+                    console.error('An error occurred while loading the runway model (runway.gltf):', error);
                 }
             );
 
@@ -620,52 +604,48 @@ function updatePhysics(dt) {
 
         // --- 飞机细节模型 ---
 
-function createDetailedPlane() {
-    // 1. 初始化 GLTFLoader
-    const loader = new THREE.GLTFLoader();
-    // 2. 加载 .glb 模型
-    loader.load(
-        // 资源路径
-        'plane1.glb',
-        // 加载成功回调
-        function (gltf) {
-            planeGroup = gltf.scene; // 赋值给全局变量 planeGroup
-            
-            // 模型的默认缩放和旋转可能需要调整，以匹配原先的几何体大小和方向。
-            // 假设模型需要缩小并旋转使其机头朝向 -Z
-            planeGroup.scale.set(1, 1, 1); // 示例缩放：根据您的模型调整
-            // 确保模型及其子对象能够投射和接收阴影
-            planeGroup.castShadow = true;
-            planeGroup.traverse(c => { 
-                if (c.isMesh) { 
-                    c.castShadow = true; 
-                    c.receiveShadow = true; 
+        function createDetailedPlane() {
+            // 1. 初始化 GLTFLoader
+            const loader = new THREE.GLTFLoader();
+            // 2. 加载 .glb 模型
+            loader.load(
+                'plane1.glb',
+                function (gltf) {
+                    planeGroup = gltf.scene; 
+                    
+                    // 模型的默认缩放和旋转可能需要调整，以匹配原先的几何体大小和方向。
+                    planeGroup.scale.set(1, 1, 1); 
+                    planeGroup.castShadow = true;
+                    planeGroup.traverse(c => { 
+                        if (c.isMesh) { 
+                            c.castShadow = true; 
+                            c.receiveShadow = true; 
+                        }
+                    });
+
+                    scene.add(planeGroup);
+                    console.log('Plane model plane1.glb loaded successfully!');
+
+                    // 3. 影子 (保留平面影子)
+                    shadowPlane = new THREE.Mesh(
+                        new THREE.CircleGeometry(15, 32), 
+                        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 })
+                    );
+                    shadowPlane.rotation.x = -Math.PI / 2;
+                    shadowPlane.position.y = 0.05; 
+                    scene.add(shadowPlane);
+                },
+                // 加载过程中回调
+                function (xhr) {
+                    console.log('Plane loading: ' + (xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
+                },
+                // 加载失败回调
+                function (error) {
+                    console.error('An error occurred while loading the plane model:', error);
                 }
-            });
-
-            scene.add(planeGroup);
-            console.log('Plane model plane1.glb loaded successfully!');
-
-            // 3. 影子 (保留平面影子)
-            shadowPlane = new THREE.Mesh(
-
             );
-            shadowPlane.rotation.x = -Math.PI / 2;
-            
-            // 修正 3：影子初始位置设置为贴近地面 (0.05)
-            shadowPlane.position.y = 0.05; 
-            scene.add(shadowPlane);
-        },
-        // 加载过程中回调
-        function (xhr) {
-            console.log('Plane loading: ' + (xhr.loaded / xhr.total * 100).toFixed(2) + '% loaded');
-        },
-        // 加载失败回调
-        function (error) {
-            console.error('An error occurred while loading the plane model:', error);
         }
-    );
-}
+        
         // **修改**：V 键切换相机模式 (新增 Orbit 模式)
         function changeCamera() {
             cameraMode = (cameraMode + 1) % 3; // 0, 1, 2 循环
@@ -708,12 +688,11 @@ function createDetailedPlane() {
         }
         
         function onMouseWheel(event) {
-            if (cameraMode === 2) {
-                // 滚轮缩放/放大切换
-                const zoomFactor = event.deltaY * 0.01; // 调整滚轮敏感度
-                // 确保 orbitDistance 被声明为 let 而不是 const (它目前是 const)
-                // orbitDistance = THREE.MathUtils.clamp(orbitDistance + zoomFactor, 20, 1000); 
-            }
+            // 滚轮缩放/放大切换
+            // if (cameraMode === 2) {
+            //     const zoomFactor = event.deltaY * 0.01; 
+            //     orbitDistance = THREE.MathUtils.clamp(orbitDistance + zoomFactor, 20, 1000); 
+            // }
         }
 
 
@@ -733,12 +712,13 @@ function createDetailedPlane() {
             if (planeGroup) {
                 // 物理同步
                 planeGroup.position.copy(physics.pos);
-                planeGroup.quaternion.copy(physics.quat);
+                
+                // 修正：旋转 180 度以匹配飞机模型的默认方向
                 const correctionQuat = new THREE.Quaternion().setFromAxisAngle(
-            new THREE.Vector3(0, 1, 0), 
-            Math.PI
-            )
-            planeGroup.quaternion.copy(physics.quat).multiply(correctionQuat);
+                    new THREE.Vector3(0, 1, 0), 
+                    Math.PI
+                );
+                planeGroup.quaternion.copy(physics.quat).multiply(correctionQuat);
 
                 // 影子跟随
                 shadowPlane.position.set(physics.pos.x, 0.05, physics.pos.z);
@@ -751,10 +731,9 @@ function createDetailedPlane() {
                 const groundHeight = 2.8;
                 
                 if (cameraMode === 0) { // 尾随视角
-                    // 理想的相机目标位置（世界坐标）
                     // 理想位置：后方80，上方15
                     const relativeOffset = new THREE.Vector3(0, 15, -80); 
-    const idealCameraPosition = relativeOffset.clone().applyMatrix4(planeGroup.matrixWorld);
+                    const idealCameraPosition = relativeOffset.clone().applyMatrix4(planeGroup.matrixWorld);
                     
                     // --- 相机避障优化：防止陷地 ---
                     const safeBuffer = 1.5;   // 相机离地最小安全距离 (例如：1.5 米)
@@ -772,15 +751,6 @@ function createDetailedPlane() {
                     const forward = new THREE.Vector3(0,0,-1).applyQuaternion(physics.quat);
                     const lookAtPos = planeGroup.position.clone().add(forward.multiplyScalar(50));
                     camera.lookAt(lookAtPos);
-                } else if (cameraMode === 0) { // 尾随视角
-    // 理想的相机目标位置（世界坐标）
-    // 理想位置：后方80，上方15
-    
-    // **🚀 关键修改：将 Z 轴偏移改为负值，以匹配模型 180 度旋转后的新尾部**
-    const relativeOffset = new THREE.Vector3(0, 15, -80); 
-    
-    const idealCameraPosition = relativeOffset.clone().applyMatrix4(planeGroup.matrixWorld);
-    
                 } else if (cameraMode === 1) { // 座舱视角
                     // 暂时不做座舱建模，使用一个靠近机身的位置
                     const relativeOffset = new THREE.Vector3(0, 2, -15);
@@ -793,9 +763,6 @@ function createDetailedPlane() {
                     const target = planeGroup.position.clone();
                     
                     // 1. 计算相机在球坐标系中的位置 (x, y, z)
-                    // x = r * sin(beta) * sin(alpha)
-                    // y = r * cos(beta)
-                    // z = r * sin(beta) * cos(alpha)
                     const sinAlpha = Math.sin(orbitAlpha);
                     const cosAlpha = Math.cos(orbitAlpha);
                     const sinBeta = Math.sin(orbitBeta);
