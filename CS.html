@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -75,29 +76,7 @@
             font-weight: 400;
         }
 
-        /* 警告信息 */
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
-
-        #center-warning {
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%);
-            color: #ff3333; 
-            font-size: 24px; 
-            font-weight: bold; 
-            border: 2px solid #ff3333;
-            padding: 10px 30px; 
-            background: rgba(0,0,0,0.7); 
-            display: none;
-            animation: blink 0.5s step-end infinite;
-            z-index: 20;
-        }
-
-        /* 控制提示 (新增) */
+        /* 控制提示 */
         #control-hints {
             position: absolute;
             bottom: 20px;
@@ -282,7 +261,7 @@
             transition: width 0.3s;
         }
 
-        /* HUD 底部信息 (新增) */
+        /* HUD 底部信息 */
         .hud-bottom {
             display: flex;
             justify-content: space-between;
@@ -366,8 +345,6 @@
                 <span class="value" id="hud-steer">0°</span> <span class="unit">ANGLE</span>
             </div>
         </div>
-    
-        <div id="center-warning">⚠ WARNING: SLIPPAGE</div>
 
         <div class="hud-bottom">
             <div id="control-hints">
@@ -425,10 +402,10 @@ const inputState = {
   keySpace: false
 };
 
-// ✅ 修复：转向参数不随速度改变
+// 引擎和转向参数
 const maxEngineForce = 12000; 
 const brakeForce = 40;
-const maxSteerVal = 0.8; // 最大转向角（弧度）- 保持恒定
+const maxSteerVal = 0.8;
 
 // 仪表盘元素
 const speedEl = document.getElementById('hud-spd');
@@ -438,7 +415,6 @@ const rpmEl = document.getElementById('hud-rpm');
 const gearEl = document.getElementById('hud-gear');
 const steerEl = document.getElementById('hud-steer');
 const throttleEl = document.getElementById('hud-throttle');
-const warningEl = document.getElementById('center-warning'); 
 
 let engineForce = 0;
 let steeringValue = 0;
@@ -491,7 +467,7 @@ function loadSplashCarModel() {
         'car1.glb', 
         (gltf) => {
             splashCarModel = gltf.scene;
-            splashCarModel.scale.set(1.2, 1.2, 1.2); 
+            splashCarModel.scale.set(1.5, 1.5, 1.5); 
             splashCarModel.rotation.y = Math.PI; 
             splashCarModel.position.y = -1;
             
@@ -566,7 +542,7 @@ function loadCarModel() {
         'car1.glb',
         (gltf) => {
             carMesh = gltf.scene;
-            carMesh.scale.set(1.2, 1.2, 1.2); 
+            carMesh.scale.set(1.5, 1.5, 1.5); 
             carMesh.rotation.y = Math.PI; 
             carMesh.position.y = -0.5; 
             
@@ -601,7 +577,7 @@ function loadTireModel() {
         'tire1.glb',
         (gltf) => {
             tireMeshPrototype = gltf.scene;
-            tireMeshPrototype.scale.set(0.5, 0.5, 0.5); 
+            tireMeshPrototype.scale.set(0.75, 0.75, 0.75); 
             tireMeshPrototype.rotation.x = Math.PI / 2;
             
             tireMeshPrototype.traverse((node) => {
@@ -743,6 +719,7 @@ function initCameraAndLights() {
   scene.add(dirLight);
 }
 
+// ✅ 修复转向问题的关键：调整轮子物理参数
 function initVehicle() {
   const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2)); 
   chassisBody = new CANNON.Body({
@@ -750,8 +727,8 @@ function initVehicle() {
     shape: chassisShape,
     position: new CANNON.Vec3(0, 1.0, 0) 
   });
-  chassisBody.angularDamping = 0.8;
-  chassisBody.linearDamping = 0.1;
+  chassisBody.angularDamping = 0.3;  // ✅ 降低角阻尼，让转向更灵敏
+  chassisBody.linearDamping = 0.05;  // ✅ 降低线性阻尼
   world.addBody(chassisBody);
 
   vehicle = new CANNON.RaycastVehicle({
@@ -768,13 +745,13 @@ function initVehicle() {
     return {
       radius: 0.5,
       directionLocal: new CANNON.Vec3(0, -1, 0),
-      suspensionStiffness: 30,
+      suspensionStiffness: 50,           // ✅ 从 30 增加到 50 - 更坚硬的悬挂
       suspensionRestLength: 0.3,
-      frictionSlip: 3, 
-      dampingRelaxation: 2.3,
-      dampingCompression: 4.4,
+      frictionSlip: 1.5,                 // ✅ 从 3 降低到 1.5 - 增加抓地力
+      dampingRelaxation: 1.5,            // ✅ 从 2.3 降低到 1.5 - 更快的响应
+      dampingCompression: 2.5,           // ✅ 从 4.4 降低到 2.5 - 更快的压缩响应
       maxSuspensionForce: 100000,
-      rollInfluence: 0.01, 
+      rollInfluence: 0.3,                // ✅ 从 0.01 增加到 0.3 - 让车更容易倾斜和转向
       maxSuspensionTravel: 0.3,
       customSlidingRotationalSpeed: -30,
       useCustomSlidingRotationalSpeed: true,
@@ -866,7 +843,6 @@ function toggleCamera() {
   }
 }
 
-// ✅ 修复的关键函数：updateControls
 function updateControls() {
   if (!chassisBody) return; 
 
@@ -882,8 +858,7 @@ function updateControls() {
   const isMovingForward = velocityVector.dot(forwardVector) > 0.5;
   const isMovingBackward = velocityVector.dot(forwardVector) < -0.5;
 
-  // ✅ FIX 1: 转向角度保持恒定，不受速度影响
-  // 油门按着时转向角度和不按油门时一样
+  // 转向角度保持恒定，不受速度影响
   if (inputState.keyA) {
     steeringValue = maxSteerVal;
   } else if (inputState.keyD) {
@@ -992,7 +967,6 @@ function updateCarMesh() {
     }
 }
 
-// ✅ 优化的 HUD 更新函数
 function updateHUD() {
   if (!chassisBody) return;
 
@@ -1011,19 +985,16 @@ function updateHUD() {
   const rpm = Math.min(75, Math.floor(speed * 2.0));
   rpmEl.textContent = rpm;
 
-  // ✅ 新增：显示转向角度
+  // 显示转向角度
   const steerDegrees = (steeringValue / maxSteerVal * 30).toFixed(0);
   steerEl.textContent = steerDegrees + '°';
 
-  // ✅ 新增：显示油门百分比
+  // 显示油门百分比
   let throttlePercent = 0;
   if (engineForce !== 0) {
     throttlePercent = Math.abs((engineForce / maxEngineForce) * 100).toFixed(0);
   }
   throttleEl.textContent = throttlePercent + '%';
-
-  warningEl.style.display = speed > 100 ? 'block' : 'none';
-  warningEl.innerText = "⚠ WARNING: SLIPPAGE"; 
 }
 
 function animate(time) {
@@ -1042,8 +1013,8 @@ function animate(time) {
   lastTime = time;
 
   updateControls();
-  updateCarMesh();
   updateWheelMeshes();
+  updateCarMesh();
   updateCamera();
   updateHUD();
 
