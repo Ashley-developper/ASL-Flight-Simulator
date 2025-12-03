@@ -264,8 +264,8 @@
 
     // 引擎和转向参数
     const maxEngineForce = 12000;
-    const brakeForce = 40;
-    const maxSteerVal = 1.2;
+    const brakeForce = 140;
+    const maxSteerVal = 0.6;
 
     // 仪表盘元素
     const speedEl = document.getElementById('hud-spd');
@@ -378,7 +378,7 @@
             const flameGeometry = new THREE.ConeGeometry(0.3, 1, 16);
             const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500 });
             flameMesh = new THREE.Mesh(flameGeometry, flameMaterial);
-            flameMesh.rotation.x = -Math.PI / 2; // 火焰朝后
+            //flameMesh.rotation.x = -Math.PI / 2; // 火焰朝后
             flameMesh.position.set(0, 0, 2.5); // 在车尾后方
             flameMesh.visible = false;
             carMesh.add(flameMesh);
