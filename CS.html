@@ -158,7 +158,6 @@
     </style>
 </head>
 <body>
-    <!-- 开始界面 Splash Screen -->
     <div id="splash">
         <div id="splash-three-container"></div>
         <h1>ASL CAR SIMULATOR</h1>
@@ -166,7 +165,6 @@
         <button id="start-button" onclick="startGame()">START DRIVING</button>
     </div>
 
-    <!-- 控制提示 (在HUD显示) -->
     <div id="hud-layer" style="display:none;">
         <div class="hud-top-left">
             <div class="instrument">
@@ -211,7 +209,6 @@
         </div>
     </div>
 
-    <!-- 加载屏幕 -->
     <div id="loading-screen" style="display:none; flex-direction:column; align-items:center; justify-content:center; position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8); color:#fff; z-index:1000;">
         <p>Loading City and Assets...</p>
         <div id="loading-progress-bar" style="width:300px; height:10px; background:#333; margin-top:10px;">
@@ -220,7 +217,6 @@
         <p id="loading-status" style="margin-top:10px; font-size:14px;">(0%)</p>
     </div>
 
-    <!-- Three.js, Cannon.js 等库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -265,7 +261,7 @@
     // 引擎和转向参数
     const maxEngineForce = 12000;
     const brakeForce = 40;
-    const maxSteerVal = 1.2;
+    const maxSteerVal = 0.7;
 
     // 仪表盘元素
     const speedEl = document.getElementById('hud-spd');
@@ -513,7 +509,8 @@
         chassisBody = new CANNON.Body({
             mass: 1500,
             shape: chassisShape,
-            position: new CANNON.Vec3(0, 1.0, 0)
+            // ⬇️ 修改: 将底盘位置从 1.0 降低到 0.6，实现底盘降低
+            position: new CANNON.Vec3(90, 0.6, 0)
         });
         chassisBody.angularDamping = 0.3;
         chassisBody.linearDamping = 0.05;
@@ -547,10 +544,10 @@
             };
         }
 
-        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase));
-        vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase));
-        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase));
-        vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase));
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase)); // 0: FL
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase)); // 1: FR
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase)); // 2: RL
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase)); // 3: RR
 
         vehicle.addToWorld(world);
 
@@ -658,8 +655,11 @@
         vehicle.setSteeringValue(steeringValue, 1);
 
         // 驱动
-        vehicle.applyEngineForce(engineForce, 2);
-        vehicle.applyEngineForce(engineForce, 3);
+        // ⬇️ 修改: 将推力应用到所有四个轮子 (0, 1, 2, 3) 实现四驱
+        vehicle.applyEngineForce(engineForce, 0); // FL
+        vehicle.applyEngineForce(engineForce, 1); // FR
+        vehicle.applyEngineForce(engineForce, 2); // RL
+        vehicle.applyEngineForce(engineForce, 3); // RR
 
         // 刹车
         let finalBrakeFL = brake, finalBrakeFR = brake, finalBrakeRL = brake, finalBrakeRR = brake;
@@ -769,7 +769,7 @@
             hemiLight.groundColor.lerpColors(nightHemiGround, dayHemiGround, t);
             dirLight.color.lerpColors(new THREE.Color(0x222233), new THREE.Color(0xfff0dd), t);
             dirLight.intensity = 0.2 * (1 - t) + 1.0 * t;
-            hemiLight.intensity = 0.2 * (1 - t) + 0.8 * t;
+            hemiLight.intensity = 0.4 * (1 - t) + 0.8 * t;
         }
     }
 
