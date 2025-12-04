@@ -210,8 +210,8 @@
     <div id="splash">
         <div id="splash-three-container"></div>
         <h1>HYPER DRIVE</h1>
-        <p class="splash-subtitle">MAXIMUM STABILITY PROTOCOL ACTIVE</p>
-        <button id="start-button" onclick="startGame()">INITIATE SIMULATION</button>
+        <p class="splash-subtitle">MADE BY ZHANYI ZHOU</p>
+        <button id="start-button" onclick="startGame()">PLAY NOW</button>
     </div>
 
     <div class="copyright-tag">ZHANYI ZHOU DESIGN © 2025</div>
@@ -297,7 +297,7 @@
     const maxSteerVal = 0.7;
 
     // ** 日夜循环时间 (根据用户要求修改) **
-    const cycleDurationSec = 300; // FIX: 5 分钟 = 300 秒
+    const cycleDurationSec = 1000; // FIX: 5 分钟 = 300 秒
 
     // 状态和加载器
     let staticBodies = [];
@@ -545,7 +545,7 @@
         chassisBody = new CANNON.Body({
             mass: 2500, // 增加质量进一步增加稳定性
             shape: chassisShape,
-            position: new CANNON.Vec3(0, 0.6, 0)
+            position: new CANNON.Vec3(90, 0.6, 0)
         });
         chassisBody.angularDamping = 0.9; // FIX: 高阻尼，彻底防止后仰
         chassisBody.linearDamping = 0.05;
