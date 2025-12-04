@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASL Car Simulator - FIXED</title>
     <style>
+        /* CSS 样式保持不变 */
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; }
-        
-        /* 仪表盘布局 */
         #hud-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
@@ -41,7 +40,6 @@
             font-size: 12px; color: #888; margin-left: 4px; font-weight: 400;
         }
 
-        /* 控制提示 */
         #control-hints {
             position: absolute;
             bottom: 20px;
@@ -65,7 +63,6 @@
             text-transform: uppercase;
         }
 
-        /* 启动画面 (Splash Screen) */
         #splash {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -93,15 +90,13 @@
             text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         }
 
-        /* 新增版权信息样式 */
         #copyright-info {
             position: absolute;
             bottom: 10px;
             opacity: 0.7;
             font-size: 12px;
         }
-
-        /* 启动画面中原有的不相关样式已移除，保留核心结构 */
+        
         #plane-chooser-title {
             font-size: 20px;
             margin-bottom: 20px;
@@ -270,8 +265,13 @@
 
     // 引擎和转向参数
     const maxEngineForce = 12000;
-    const maxSteerVal = 1.6; // 增大转弯幅度
-    const steeringSmoothFactor = 0.15; // 提高转向响应速度
+    const maxSteerVal = 1.6; // 保持 90 度大转弯幅度
+    // ** 修复转向问题：提高转向响应速度 **
+    const steeringSmoothFactor = 0.25; // 从 0.15 增加到 0.25，减少转向延迟
+
+    let engineForce = 0;
+    let steeringValue = 0;
+    let targetSteeringValue = 0; 
 
     // 仪表盘元素
     const speedEl = document.getElementById('hud-spd');
@@ -282,9 +282,6 @@
     const steerEl = document.getElementById('hud-steer');
     const throttleEl = document.getElementById('hud-throttle');
 
-    let engineForce = 0;
-    let steeringValue = 0;
-    let targetSteeringValue = 0; // 新增：平滑转向的目标值
 
     // =============================================================================
     // ** THREE.js/GLTF Loader 初始化 **
@@ -371,29 +368,26 @@
     function loadCarModel() {
         gltfLoader.load('car1.glb', (gltf) => {
             carMesh = gltf.scene;
-            // 3. 车身再增大：从 1.7 增加到 2.5
-            carMesh.scale.set(2.5, 2.5, 2.5);
+            // ** 悬空轮子修复：将视觉缩放重置为 1.0 (或更小)，确保物理尺寸匹配 **
+            carMesh.scale.set(1.0, 1.0, 1.0); // 从 2.5 降为 1.0
             carMesh.rotation.y = Math.PI;
-            carMesh.position.y = -0.7; // 调整位置以适应新的底盘高度
-            
-            // ** 修复悬空轮子：移除模型自带的轮子 **
+            carMesh.position.y = -0.3; // 调整位置以适应新的底盘高度 (0.5 + 轮半径0.4)
+
+            // 移除模型自带的轮子网格，只保留物理引擎驱动的轮子网格
             const objectsToRemove = [];
             carMesh.traverse((node) => {
                 if (node.isMesh) {
                     node.castShadow = true;
                 }
-                // 常见的轮子命名包括 Wheel, Tire, Rim 等
                 const name = node.name.toLowerCase();
                 if (name.includes('wheel') || name.includes('tire') || name.includes('rim')) {
                     objectsToRemove.push(node);
                 }
             });
 
-            // 移除模型自带的轮子网格，只保留物理引擎驱动的轮子网格
             objectsToRemove.forEach(node => {
                 if (node.parent) node.parent.remove(node);
             });
-            // ** 悬空轮子修复结束 **
 
             scene.add(carMesh);
 
@@ -411,7 +405,8 @@
     function loadTireModel() {
         gltfLoader.load('tire1.glb', (gltf) => {
             tireMeshPrototype = gltf.scene;
-            tireMeshPrototype.scale.set(0.75, 0.75, 0.75);
+            // ** 悬空轮子修复：将轮胎缩放也重置到更保守的 1.0 **
+            tireMeshPrototype.scale.set(1.0, 1.0, 1.0); // 从 0.75 调整
             tireMeshPrototype.rotation.x = Math.PI / 2;
             tireMeshPrototype.traverse((node) => {
                 if (node.isMesh) node.castShadow = true;
@@ -431,7 +426,7 @@
             city.scale.set(4,4,4);
             scene.add(city);
 
-            // 将city模型转换为Cannon Trimesh用于精确碰撞
+            // 碰撞体代码保持不变
             city.updateMatrixWorld(true);
             city.traverse((node) => {
                 if (node.isMesh) {
@@ -464,7 +459,6 @@
     // =============================================================================
     function initThree() {
         scene = new THREE.Scene();
-        // 5. 去除日夜：固定背景为白天
         scene.background = daySkyColor.clone();
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -514,7 +508,6 @@
         cameraCockpit = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
         activeCamera = cameraChase;
 
-        // 5. 去除日夜：固定光照为白天
         hemiLight = new THREE.HemisphereLight(dayHemiSky.clone(), dayHemiGround.clone(), 0.8);
         scene.add(hemiLight);
 
@@ -532,18 +525,17 @@
         scene.add(dirLight);
     }
 
-    // 1. 底盘降低，伸长，符合f1赛车。
     function initVehicle() {
-        // 底盘：宽度1，高度0.3 (降低)，长度3 (伸长) -> 原为 1, 0.5, 2
-        const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.3, 3));
+        // ** 悬空轮子修复：缩小底盘尺寸以匹配视觉模型（假设 1.0 缩放）**
+        // 底盘：宽度 0.8，高度 0.3，长度 1.5 (半尺寸) -> 原为 1, 0.3, 3
+        const chassisShape = new CANNON.Box(new CANNON.Vec3(0.8, 0.3, 1.5));
         chassisBody = new CANNON.Body({
             mass: 1500,
             shape: chassisShape,
-            // 降低底盘：从 1.0 降低到 0.8
             position: new CANNON.Vec3(0, 0.8, 0)
         });
-        // ** 修复转向问题：降低角阻尼，减少对旋转的抑制 **
-        chassisBody.angularDamping = 0.1; // 从 0.3 降低
+        // 保持低角阻尼以利于转向
+        chassisBody.angularDamping = 0.1; 
         chassisBody.linearDamping = 0.05;
         world.addBody(chassisBody);
 
@@ -555,24 +547,25 @@
         });
 
         // 调整轴距和轮距以适应新底盘
-        const axleWidth = 1.0;
-        const wheelBase = 2.5; // 增加轴距
+        const axleWidth = 0.7; // 新轮距 (总宽度 1.4)
+        const wheelBase = 1.2; // 新轴距 (总长度 2.4)
         function makeWheelOptions(x,y,z) {
             return {
-                radius: 0.5,
+                radius: 0.4, // 略微减小轮子半径以匹配新尺寸
                 directionLocal: new CANNON.Vec3(0, -1, 0),
                 suspensionStiffness: 50,
                 suspensionRestLength: 0.3,
-                frictionSlip: 2.5,
+                // ** 转弯修复：降低摩擦力，让车轮更容易侧滑转向 **
+                frictionSlip: 1.0, // 从 2.5 降到 1.0
                 dampingRelaxation: 1.5,
                 dampingCompression: 2.5,
                 maxSuspensionForce: 100000,
-                // ** 修复转向问题：降低横向影响力，减少侧滑抑制 **
-                rollInfluence: 0.1, // 从 0.5 降低
+                rollInfluence: 0.1, 
                 maxSuspensionTravel: 0.3,
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
+                // ** 悬空轮子修复：新的连接点与新底盘尺寸匹配 **
                 chassisConnectionPointLocal: new CANNON.Vec3(x, y, z)
             };
         }
@@ -589,8 +582,6 @@
             for (let i = 0; i < vehicle.wheelInfos.length; i++) {
                 const wheelMesh = tireMeshPrototype.clone();
                 wheelMeshes.push(wheelMesh);
-                // ** 修复悬空轮子：将网格轮子附加到车身 **
-                // carMesh 还没有在场景中，所以我们仍然添加到 scene，但在 updateCarMesh 中我们保证了 carMesh 随物理车身移动
                 scene.add(wheelMesh);
             }
         } else {
@@ -619,7 +610,7 @@
             case ' ': inputState.keySpace = true; event.preventDefault(); break;
             case 'shift': inputState.keyShift = true; break;
             case 'v': toggleCamera(); break;
-            case 'r': inputState.keyR = true; break; // **新增：R 键重生**
+            case 'r': inputState.keyR = true; break; 
         }
     });
     window.addEventListener('keyup', (event) => {
@@ -630,7 +621,7 @@
             case 'd': inputState.keyD = false; break;
             case ' ': inputState.keySpace = false; break;
             case 'shift': inputState.keyShift = false; break;
-            case 'r': inputState.keyR = false; break; // **新增：R 键重生**
+            case 'r': inputState.keyR = false; break; 
         }
     });
     function toggleCamera() {
@@ -646,30 +637,24 @@
         engineForce = 0;
         let brake = 0;
 
-        // **R 键重生逻辑**
+        // R 键重生逻辑
         if (inputState.keyR) {
-            // 重置位置
             chassisBody.position.set(0, 5, 0);
-            // 重置旋转 (保持水平，朝向 Z 轴)
             chassisBody.quaternion.set(0, 0, 0, 1);
-            // 清除线速度和角速度
             chassisBody.velocity.set(0, 0, 0);
             chassisBody.angularVelocity.set(0, 0, 0);
-            // 确保物理引擎更新状态
             chassisBody.wakeUp();
 
-            inputState.keyR = false; // 重置 R 键状态
+            inputState.keyR = false; 
             gearEl.textContent = 'P';
             
-            // 立即重置转向和驱动力，防止重置时车子滑动
             vehicle.setSteeringValue(0, 0);
             vehicle.setSteeringValue(0, 1);
             vehicle.applyEngineForce(0, 0);
             vehicle.applyEngineForce(0, 1);
             vehicle.applyEngineForce(0, 2);
             vehicle.applyEngineForce(0, 3);
-
-            return; // 重生后立即退出，避免执行其他控制
+            return; 
         }
 
 
@@ -681,7 +666,7 @@
         const isMovingForward = velocityVector.dot(forwardVector) > 0.5;
         const isMovingBackward = velocityVector.dot(forwardVector) < -0.5;
 
-        // 4. 平滑转向输入（渐变）
+        // 平滑转向输入（渐变）
         if (inputState.keyA) {
             targetSteeringValue = maxSteerVal;
         } else if (inputState.keyD) {
@@ -689,11 +674,11 @@
         } else {
             targetSteeringValue = 0;
         }
-        // 使用 lerp (线性插值) 来平滑转向值
+        // 转向平滑
         steeringValue = steeringValue + (targetSteeringValue - steeringValue) * steeringSmoothFactor;
 
 
-        // 加速 / 倒车
+        // 加速 / 倒车逻辑保持不变
         if (inputState.keyW) {
             if (isMovingBackward) {
                 brake = maxEngineForce * 0.5;
@@ -717,24 +702,23 @@
         }
 
         // 转向值应用：仅前轮转向 (0, 1)
-        vehicle.setSteeringValue(steeringValue, 0); // 前左轮
-        vehicle.setSteeringValue(steeringValue, 1); // 前右轮
-        // 后轮不转向
-        vehicle.setSteeringValue(0, 2); // 后左轮
-        vehicle.setSteeringValue(0, 3); // 后右轮
+        vehicle.setSteeringValue(steeringValue, 0); 
+        vehicle.setSteeringValue(steeringValue, 1); 
+        vehicle.setSteeringValue(0, 2); 
+        vehicle.setSteeringValue(0, 3); 
 
 
-        // ** 修复转向问题：将驱动力改为后驱为主（减小前轮推头）**
-        const frontWheelForce = engineForce * 0.2; // 前轮只提供 20% 驱动力
-        const rearWheelForce = engineForce;        // 后轮提供 100% 驱动力
+        // 驱动力：后驱为主 (保持不变，避免推头)
+        const frontWheelForce = engineForce * 0.2; 
+        const rearWheelForce = engineForce;        
 
-        vehicle.applyEngineForce(frontWheelForce, 0); // 前左轮 (0)
-        vehicle.applyEngineForce(frontWheelForce, 1); // 前右轮 (1)
-        vehicle.applyEngineForce(rearWheelForce, 2);  // 后左轮 (2)
-        vehicle.applyEngineForce(rearWheelForce, 3);  // 后右轮 (3)
+        vehicle.applyEngineForce(frontWheelForce, 0); 
+        vehicle.applyEngineForce(frontWheelForce, 1); 
+        vehicle.applyEngineForce(rearWheelForce, 2);  
+        vehicle.applyEngineForce(rearWheelForce, 3);  
 
 
-        // 刹车
+        // 刹车逻辑保持不变
         let finalBrakeFL = brake, finalBrakeFR = brake, finalBrakeRL = brake, finalBrakeRR = brake;
         if (inputState.keySpace) {
             const handbrakeStrength = maxEngineForce * 0.8;
@@ -743,13 +727,11 @@
             gearEl.textContent = 'E';
         }
         
-        // 应用刹车
         vehicle.setBrake(finalBrakeFL, 0);
         vehicle.setBrake(finalBrakeFR, 1);
         vehicle.setBrake(finalBrakeRL, 2);
         vehicle.setBrake(finalBrakeRR, 3);
 
-        // 清除刹车，防止误刹
         if (finalBrakeFL === 0 && finalBrakeRL === 0 && !inputState.keySpace) {
              vehicle.setBrake(0, 0);
              vehicle.setBrake(0, 1);
@@ -788,6 +770,7 @@
     }
 
     function updateWheelMeshes() {
+        // ** 物理轮子和视觉轮子同步：代码保持正确 **
         for (let i = 0; i < vehicle.wheelInfos.length; i++) {
             vehicle.updateWheelTransform(i);
             const t = vehicle.wheelInfos[i].worldTransform;
@@ -800,6 +783,7 @@
 
     function updateCarMesh() {
         if (chassisBody && carMesh) {
+            // ** 悬空轮子修复：车身网格跟随物理底盘移动 **
             carMesh.position.copy(chassisBody.position);
             carMesh.quaternion.copy(chassisBody.quaternion);
         }
@@ -821,7 +805,6 @@
         const steerDegrees = (steeringValue / maxSteerVal * 30).toFixed(0); 
         steerEl.textContent = steerDegrees + '°';
         let throttlePercent = 0;
-        // 注意：计算油门百分比时，使用原本的 maxEngineForce
         if (engineForce !== 0) {
             throttlePercent = Math.abs((engineForce / maxEngineForce) * 100).toFixed(0);
         }
@@ -833,7 +816,6 @@
         const chassisPos = new THREE.Vector3(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z);
         staticBodies.forEach(obj => {
             const d = chassisPos.distanceTo(obj.center);
-            // 扩大加载范围
             if (!obj.added && d <= obj.radius + 10) { 
                 world.addBody(obj.body);
                 obj.added = true;
