@@ -209,6 +209,7 @@
                 <div>Press Shift for Boost</div>
                 <div>SPACE for handbrake drift</div>
                 <div>V to switch camera</div>
+                <div>**R to Respawn**</div>
             </div>
             <div class="hud-bottom-right">
                 <div class="instrument" style="border-left-color: #00ff00;">
@@ -263,15 +264,16 @@
       keyA: false,
       keyD: false,
       keySpace: false,
-      keyShift: false
+      keyShift: false,
+      keyR: false // 新增：R键重生状态
     };
 
     // 引擎和转向参数
     const maxEngineForce = 12000;
     // const brakeForce = 40; // 忽略原始的brakeForce，直接使用逻辑中的值
-    const maxSteerVal = 1.2;
+    const maxSteerVal = 1.6; // 增大转弯幅度
     // 转向平滑因子 (新增)
-    const steeringSmoothFactor = 0.08; 
+    const steeringSmoothFactor = 0.15; // 提高转向响应速度
 
     // 仪表盘元素
     const speedEl = document.getElementById('hud-spd');
@@ -562,10 +564,10 @@
             };
         }
 
-        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase)); // 前左
-        vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase)); // 前右
-        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase)); // 后左
-        vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase)); // 后右
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase)); // 前左 (0)
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase)); // 前右 (1)
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase)); // 后左 (2)
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase)); // 后右 (3)
 
         vehicle.addToWorld(world);
 
@@ -602,6 +604,7 @@
             case ' ': inputState.keySpace = true; event.preventDefault(); break;
             case 'shift': inputState.keyShift = true; break;
             case 'v': toggleCamera(); break;
+            case 'r': inputState.keyR = true; break; // **新增：R 键重生**
         }
     });
     window.addEventListener('keyup', (event) => {
@@ -612,6 +615,7 @@
             case 'd': inputState.keyD = false; break;
             case ' ': inputState.keySpace = false; break;
             case 'shift': inputState.keyShift = false; break;
+            case 'r': inputState.keyR = false; break; // **新增：R 键重生**
         }
     });
     function toggleCamera() {
@@ -626,6 +630,33 @@
         if (!chassisBody) return;
         engineForce = 0;
         let brake = 0;
+
+        // **R 键重生逻辑**
+        if (inputState.keyR) {
+            // 重置位置
+            chassisBody.position.set(0, 5, 0);
+            // 重置旋转 (保持水平，朝向 Z 轴)
+            chassisBody.quaternion.set(0, 0, 0, 1);
+            // 清除线速度和角速度
+            chassisBody.velocity.set(0, 0, 0);
+            chassisBody.angularVelocity.set(0, 0, 0);
+            // 确保物理引擎更新状态
+            chassisBody.wakeUp();
+
+            inputState.keyR = false; // 重置 R 键状态
+            gearEl.textContent = 'P';
+            
+            // 立即重置转向和驱动力，防止重置时车子滑动
+            vehicle.setSteeringValue(0, 0);
+            vehicle.setSteeringValue(0, 1);
+            vehicle.applyEngineForce(0, 0);
+            vehicle.applyEngineForce(0, 1);
+            vehicle.applyEngineForce(0, 2);
+            vehicle.applyEngineForce(0, 3);
+
+            return; // 重生后立即退出，避免执行其他控制
+        }
+
 
         const v = chassisBody.velocity;
         const currentSpeed = v.length() * 3.6;
@@ -670,12 +701,12 @@
             }
         }
 
-        // 转向值应用
+        // 转向值应用：仅前轮转向 (0, 1)
         vehicle.setSteeringValue(steeringValue, 0); // 前左轮
         vehicle.setSteeringValue(steeringValue, 1); // 前右轮
-        // 后轮不转向，保持为 0
-        vehicle.setSteeringValue(0, 2); 
-        vehicle.setSteeringValue(0, 3); 
+        // 修复：后轮不转向
+        vehicle.setSteeringValue(0, 2); // 后左轮
+        vehicle.setSteeringValue(0, 3); // 后右轮
 
 
         // 2. 二驱改四驱
@@ -780,11 +811,6 @@
     }
 
     // 5. 去除日夜：删除 updateDayNight 函数，并移除调用
-    /*
-    function updateDayNight(time) {
-        // ... (原函数内容已移除)
-    }
-    */
 
     function updateColliders() {
         if (!chassisBody) return;
