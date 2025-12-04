@@ -158,7 +158,6 @@
     </style>
 </head>
 <body>
-    <!-- 开始界面 Splash Screen -->
     <div id="splash">
         <div id="splash-three-container"></div>
         <h1>ASL CAR SIMULATOR</h1>
@@ -166,7 +165,6 @@
         <button id="start-button" onclick="startGame()">START DRIVING</button>
     </div>
 
-    <!-- 控制提示 (在HUD显示) -->
     <div id="hud-layer" style="display:none;">
         <div class="hud-top-left">
             <div class="instrument">
@@ -211,7 +209,6 @@
         </div>
     </div>
 
-    <!-- 加载屏幕 -->
     <div id="loading-screen" style="display:none; flex-direction:column; align-items:center; justify-content:center; position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8); color:#fff; z-index:1000;">
         <p>Loading City and Assets...</p>
         <div id="loading-progress-bar" style="width:300px; height:10px; background:#333; margin-top:10px;">
@@ -220,7 +217,6 @@
         <p id="loading-status" style="margin-top:10px; font-size:14px;">(0%)</p>
     </div>
 
-    <!-- Three.js, Cannon.js 等库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -265,7 +261,8 @@
     // 引擎和转向参数
     const maxEngineForce = 12000;
     const brakeForce = 40;
-    const maxSteerVal = 1.2;
+    // 💥 改进转弯角度：增加最大转向值 (原 1.2)
+    const maxSteerVal = 1.6;
 
     // 仪表盘元素
     const speedEl = document.getElementById('hud-spd');
@@ -366,7 +363,8 @@
             carMesh = gltf.scene;
             carMesh.scale.set(1.7, 1.7, 1.7);
             carMesh.rotation.y = Math.PI;
-            carMesh.position.y = -0.5;
+            // 调整汽车网格的 Y 轴位置以匹配新的 F1 低底盘高度
+            carMesh.position.y = -0.05; 
             carMesh.traverse((node) => {
                 if (node.isMesh) {
                     node.castShadow = true;
@@ -507,15 +505,16 @@
         scene.add(dirLight);
     }
 
-    // ✅ 修复转向问题的关键：调整轮子物理参数
+    // ✅ F1 风格物理底盘和悬挂设置
     function initVehicle() {
-        const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
+        // F1 风格：底盘更小、更低
+        const chassisShape = new CANNON.Box(new CANNON.Vec3(0.9, 0.25, 2.2)); // 调低高度 (0.25)
         chassisBody = new CANNON.Body({
-            mass: 1500,
+            mass: 1200, // 略微减轻质量
             shape: chassisShape,
-            position: new CANNON.Vec3(0, 1.0, 0)
+            position: new CANNON.Vec3(0, 0.4, 0) // 显著降低起始高度和重心
         });
-        chassisBody.angularDamping = 0.3;
+        chassisBody.angularDamping = 0.5; // 略微增加角阻尼以稳定
         chassisBody.linearDamping = 0.05;
         world.addBody(chassisBody);
 
@@ -526,20 +525,22 @@
             indexForwardAxis: 2
         });
 
-        const axleWidth = 1.0;
-        const wheelBase = 1.5;
+        // F1 风格：更宽的轴距和更长的轴距
+        const axleWidth = 1.1; // 增加轴宽
+        const wheelBase = 1.8; // 增加轴距
         function makeWheelOptions(x,y,z) {
             return {
-                radius: 0.5,
+                radius: 0.35, // 略微减小半径
                 directionLocal: new CANNON.Vec3(0, -1, 0),
-                suspensionStiffness: 50,
-                suspensionRestLength: 0.3,
-                frictionSlip: 1.5,
-                dampingRelaxation: 1.5,
-                dampingCompression: 2.5,
-                maxSuspensionForce: 100000,
-                rollInfluence: 0.3,
-                maxSuspensionTravel: 0.3,
+                // F1 悬挂参数：硬且短行程
+                suspensionStiffness: 150, // 显著增加刚度 (原始 50)
+                suspensionRestLength: 0.1, // 缩短休息长度 (原始 0.3)
+                frictionSlip: 5.0, // 显著增加摩擦力以模拟高抓地力轮胎 (原始 1.5)
+                dampingRelaxation: 0.5, // 降低阻尼以获得更灵敏的响应 (原始 1.5)
+                dampingCompression: 0.8, // 降低压缩阻尼 (原始 2.5)
+                maxSuspensionForce: 200000, // 增加最大悬挂力
+                rollInfluence: 0.1, // 减小侧倾影响 (保持车辆稳定)
+                maxSuspensionTravel: 0.08, // 显著减少悬挂行程 (原始 0.3)
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
@@ -547,13 +548,16 @@
             };
         }
 
+        // 前轮
         vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase));
         vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase));
+        // 后轮
         vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase));
         vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase));
 
         vehicle.addToWorld(world);
 
+        // Three.js 轮子网格（保持不变）
         wheelMeshes = [];
         if (tireMeshPrototype) {
             for (let i = 0; i < vehicle.wheelInfos.length; i++) {
@@ -695,13 +699,15 @@
         const chassisPos = new THREE.Vector3().copy(chassisBody.position);
         const q = chassisBody.quaternion;
         if (activeCamera === cameraChase) {
-            const offset = new THREE.Vector3(0, 3, -7);
+            // 追逐相机调整高度以适应新的低底盘
+            const offset = new THREE.Vector3(0, 2, -5); 
             offset.applyQuaternion(q);
             offset.add(chassisPos);
             cameraChase.position.lerp(offset, 0.1);
-            cameraChase.lookAt(chassisPos.x, chassisPos.y + 1, chassisPos.z);
+            cameraChase.lookAt(chassisPos.x, chassisPos.y + 0.5, chassisPos.z);
         } else {
-            const offset = new THREE.Vector3(0, 0.8, 1.5);
+            // 驾驶舱相机调整高度和位置
+            const offset = new THREE.Vector3(0, 0.4, 1.2); 
             offset.applyQuaternion(q);
             offset.add(chassisPos);
             cameraCockpit.position.copy(offset);
@@ -778,10 +784,11 @@
         const chassisPos = new THREE.Vector3(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z);
         staticBodies.forEach(obj => {
             const d = chassisPos.distanceTo(obj.center);
-            if (!obj.added && d <= obj.radius + 3) {
+            // 激活碰撞体的距离可以根据需要调整
+            if (!obj.added && d <= obj.radius + 15) { 
                 world.addBody(obj.body);
                 obj.added = true;
-            } else if (obj.added && d > obj.radius + 3) {
+            } else if (obj.added && d > obj.radius + 15) {
                 world.removeBody(obj.body);
                 obj.added = false;
             }
