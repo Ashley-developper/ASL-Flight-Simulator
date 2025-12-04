@@ -526,23 +526,25 @@
         const axleWidth = 1.0;
         const wheelBase = 1.5;
         function makeWheelOptions(x,y,z) {
-            return {
-                radius: 0.5,
-                directionLocal: new CANNON.Vec3(0, -1, 0),
-                suspensionStiffness: 50,
-                suspensionRestLength: 0.3,
-                frictionSlip: 1.5,
-                dampingRelaxation: 1.5,
-                dampingCompression: 2.5,
-                maxSuspensionForce: 100000,
-                rollInfluence: 0.3,
-                maxSuspensionTravel: 0.3,
-                customSlidingRotationalSpeed: -30,
-                useCustomSlidingRotationalSpeed: true,
-                axleLocal: new CANNON.Vec3(1, 0, 0),
-                chassisConnectionPointLocal: new CANNON.Vec3(x, y, z)
-            };
-        }
+    return {
+        radius: 0.5,
+        directionLocal: new CANNON.Vec3(0, -1, 0),
+        // 增加刚度：减少车身倾斜
+        suspensionStiffness: 100, // 从 50 增加到 100
+        suspensionRestLength: 0.3,
+        frictionSlip: 1.5,
+        // 增加阻尼：吸收震动，减少后仰/前倾
+        dampingRelaxation: 5.0, // 从 1.5 增加到 5.0
+        dampingCompression: 6.0, // 从 2.5 增加到 6.0
+        maxSuspensionForce: 100000,
+        rollInfluence: 0.3,
+        maxSuspensionTravel: 0.3,
+        customSlidingRotationalSpeed: -30,
+        useCustomSlidingRotationalSpeed: true,
+        axleLocal: new CANNON.Vec3(1, 0, 0),
+        chassisConnectionPointLocal: new CANNON.Vec3(x, y, z)
+    };
+}
 
         vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase)); // 0: FL
         vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase)); // 1: FR
