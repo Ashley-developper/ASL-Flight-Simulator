@@ -242,12 +242,12 @@
 <body>
     <div id="splash">
         <div id="splash-three-container"></div>
-        <h1>ASL HYPER DRIVE</h1>
-        <p class="splash-subtitle">ZHANYI ZHOU © 2025</p>
+        <h1>HYPER DRIVE</h1>
+        <p class="splash-subtitle">MADE BY ZHANYI ZHOU</p>
         <button id="start-button" onclick="startGame()">PLAY NOW</button>
     </div>
 
-    <div class="copyright-tag">POWERED BY ZHANYI ZHOU © 2025</div>
+    <div class="copyright-tag">ZHANYI ZHOU DESIGN © 2025</div>
 
     <div id="hud-layer" style="display:none;">
         <div class="hud-top-left">
@@ -283,7 +283,7 @@
 
         <div class="hud-top-right">
             <div class="instrument" id="hud-reward">
-                <span class="label">DRIVE LEVEL</span>
+                <span class="label">DRIVE REWARD</span>
                 <span class="value" id="reward-level">LEVEL 1</span>
                 <div style="font-size: 12px; color: #aaa; margin-top: 5px;">
                     <span id="distance-value">0.0</span> <span class="unit" style="margin: 0;">KM</span>
@@ -352,11 +352,8 @@
     let lastCarPosition = null;
     const rewardLevels = [
         { level: "LEVEL 1", distance: 0 },
-        { level: "LEVEL 2", distance: 5.0 }, // 1.0 km
-        { level: "LEVEL 3", distance: 10.0 }  // 5.0 km
-        { level: "LEVEL 4", distance: 20.0 }
-        { level: "LEVEL 5", distance: 40.0 }
-        { level: "LEVEL ULTRA", distance: 80.0 }
+        { level: "LEVEL 2", distance: 1.0 }, // 1.0 km
+        { level: "LEVEL 3", distance: 5.0 }  // 5.0 km
     ];
     let currentRewardLevel = rewardLevels[0];
 
