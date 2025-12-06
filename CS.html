@@ -6,96 +6,115 @@
     <title>ASL Car Simulator - Babylon Migration (Havok)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* =========================================================================
-         * UI 基础与字体  --- 完整恢复自你提供的 CSS
-         * ========================================================================= */
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background: #000000; 
-            font-family: 'Rajdhani', sans-serif; 
+        /* 页面基本样式 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000000;
+            font-family: 'Rajdhani', sans-serif;
             color: #E0FFFF;
-            user-select: none; 
+            user-select: none;
         }
-        
-        /* =========================================================================
-         * HUD 整体布局
-         * ========================================================================= */
+        /* 全屏画布 */
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* 启动画面 Splash 层 */
+        #splash {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #000000 0%, #0a0a1a 100%);
+            z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #splash h1 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 48px;
+            background: linear-gradient(to right, #00FFFF, #FF00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            margin: 0;
+        }
+        .splash-subtitle {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            color: rgba(0, 255, 255, 0.7);
+            letter-spacing: 4px;
+            margin: 8px 0;
+        }
+        /* HUD 整体布局 */
         #hud-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
-            padding: 30px; box-sizing: border-box; z-index: 10;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+            box-sizing: border-box;
+            z-index: 10;
         }
-
-        .hud-top-left { 
-            display: flex; 
-            gap: 20px; 
-            flex-wrap: wrap; 
+        .hud-top-left {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-
         .hud-top-right {
             position: absolute;
             top: 30px;
             right: 30px;
         }
-        
-        /* 仪表盘核心样式 - 赛博朋克霓虹风 */
+        /* 仪表盘风格 */
         .instrument {
             background: rgba(0, 15, 30, 0.7);
             border: 1px solid rgba(0, 255, 255, 0.2);
-            border-left: 5px solid #00FFFF; /* 默认霓虹蓝 */
+            border-left: 5px solid #00FFFF;
             backdrop-filter: blur(10px);
             padding: 12px 22px;
             min-width: 120px;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
             border-radius: 4px;
             transition: all 0.2s ease;
-            clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 100%, 0 100%); /* 切角设计 */
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 100%, 0 100%);
         }
-        
         .instrument:hover {
             transform: translateY(-2px);
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
         }
-
-        /* 标签 */
         .label {
             font-family: 'Orbitron', sans-serif;
-            font-size: 10px; 
-            color: #00FFFF; 
-            font-weight: 700; 
+            font-size: 10px;
+            color: #00FFFF;
+            font-weight: 700;
             letter-spacing: 2px;
-            margin-bottom: 3px; 
-            display:block; 
-            text-transform: uppercase; 
+            margin-bottom: 3px;
+            display: block;
+            text-transform: uppercase;
             text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
         }
-        
-        /* 值 */
         .value {
             font-family: 'Orbitron', sans-serif;
-            font-size: 36px; 
-            font-weight: 900; 
+            font-size: 36px;
+            font-weight: 900;
             letter-spacing: -2px;
             line-height: 1;
             color: #FFFFFF;
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
-        
         .unit {
-            font-size: 14px; 
-            color: #888888; 
-            margin-left: 6px; 
+            font-size: 14px;
+            color: #888888;
+            margin-left: 6px;
             font-weight: 400;
         }
-
-        /* 特殊颜色 */
         .spd-color { border-left-color: #00FFFF !important; }
         .rpm-color { border-left-color: #FF00FF !important; }
         .gear-color { border-left-color: #FFD700 !important; }
         .throttle-color { border-left-color: #00FF00 !important; }
 
-        /* HUD coin 仪表 - 与原风格一致 */
+        /* HUD 金币计数 */
         #hud-coin {
             background: rgba(35, 18, 0, 0.7);
             border: 1px solid rgba(255, 215, 0, 0.15);
@@ -107,9 +126,7 @@
         #hud-coin .label { color: #FFD700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.6); }
         #coin-count { font-size: 40px; letter-spacing: 2px; color: #FFD700; }
 
-        /* =========================================================================
-         * 底部控制提示与版权
-         * ========================================================================= */
+        /* 底部控制提示 */
         #control-hints {
             position: absolute;
             bottom: 30px;
@@ -126,13 +143,10 @@
             line-height: 1.8;
             box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
         }
-        
-        /* 新增的重生提示的特殊样式 */
         .respawn-hint {
             color: #FFD700;
             font-weight: bold;
         }
-
         .hint-title {
             color: #00FF00;
             font-family: 'Orbitron', sans-serif;
@@ -144,8 +158,6 @@
             padding-bottom: 5px;
             letter-spacing: 2px;
         }
-        
-        /* 版权标识 */
         .copyright-tag {
             position: fixed;
             bottom: 15px;
@@ -156,97 +168,48 @@
             letter-spacing: 1px;
             z-index: 10;
         }
-
-        /* =========================================================================
-         * 启动画面样式
-         * ========================================================================= */
-        #splash {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #000000 0%, #0a0a1a 100%);
-            z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white;
-            opacity: 1;
-            transition: opacity 0.5s;
-        }
-        
-        #splash-three-container {
-            width: 300px; height: 150px; margin-bottom: 20px; position: relative;
-        }
-
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 48px;
-            margin: 0;
-            font-weight: 900;
-            letter-spacing: 10px;
-            text-transform: uppercase;
-            background: linear-gradient(to right, #00FFFF, #FF00FF);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-        }
-
-        #start-button {
-            margin-top: 40px;
-            padding: 15px 60px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 18px;
-            font-weight: bold;
-            color: #000000;
-            background: #00FFFF;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
-            letter-spacing: 3px;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
-            clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
-        }
-
-        #start-button:hover {
-            background: #FF00FF;
-            box-shadow: 0 0 40px rgba(255, 0, 255, 1);
-            color: #fff;
-        }
-        
-        .splash-subtitle {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 18px;
-            color: rgba(0, 255, 255, 0.7);
-            letter-spacing: 4px;
-        }
-
-        /* 加载界面 */
+        /* 加载屏幕 */
         #loading-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
             background: #000; color: #00FFFF; z-index: 1000;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
             opacity: 0; transition: opacity 0.5s;
         }
         #loading-screen p { font-family: 'Orbitron', sans-serif; }
-        #loading-progress-bar { width: 400px; height: 5px; background: #222; margin-top: 10px; border-radius: 2px; overflow: hidden; }
-        #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
-
-        /* small helpers */
-        .hidden { display:none !important; }
+        #loading-progress-bar {
+            width: 400px; height: 5px;
+            background: #222; margin-top: 10px;
+            border-radius: 2px; overflow: hidden;
+        }
+        #loading-progress-fill {
+            height: 100%; width: 0%;
+            background: #00FFFF;
+            box-shadow: 0 0 10px #00FFFF;
+        }
+        /* 辅助隐藏类 */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <!-- Babylon 渲染画布 -->
     <canvas id="renderCanvas"></canvas>
 
-    <!-- 启动画面 & HUD：保留原 DOM ID 与内容 -->
+    <!-- 启动画面 -->
     <div id="splash">
         <div id="splash-three-container"></div>
         <h1>HYPER DRIVE</h1>
         <p class="splash-subtitle">MADE BY ZHANYI ZHOU</p>
-        <div style="margin-top:16px; color:#FFD700; font-weight:700;">Gold Coin collected: <span id="splash-coin-count">0</span></div>
+        <div style="margin-top:16px; color:#FFD700; font-weight:700;">
+            Gold Coin collected: <span id="splash-coin-count">0</span>
+        </div>
         <button id="start-button">PLAY NOW</button>
     </div>
 
     <div class="copyright-tag">ZHANYI ZHOU DESIGN © 2025</div>
 
+    <!-- HUD 仪表 -->
     <div id="hud-layer" class="hidden">
         <div class="hud-top-left">
             <div class="instrument spd-color">
@@ -296,7 +259,8 @@
         </div>
     </div>
 
-    <div id="loading-screen" style="display:none;align-items:center;justify-content:center;">
+    <!-- 加载屏幕 -->
+    <div id="loading-screen" style="display:none; align-items:center; justify-content:center;">
         <p>LOADING CITY AND ASSETS...</p>
         <div id="loading-progress-bar">
             <div id="loading-progress-fill"></div>
@@ -304,7 +268,7 @@
         <p id="loading-status" style="margin-top:10px; font-size:14px;">(0%)</p>
     </div>
 
-    <!-- Babylon 库与 Havok + loader -->
+    <!-- Babylon.js 核心 & Material 库 & GLTF Loader & Havok 物理 -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -320,7 +284,7 @@
         let scene = null;
         let followCam = null, cockpitCam = null, activeCam = null;
 
-        // IDs from original
+        // HUD 元素
         const speedEl = document.getElementById('hud-spd');
         const rpmEl = document.getElementById('hud-rpm');
         const gearEl = document.getElementById('hud-gear');
@@ -333,18 +297,18 @@
         const loadingFill = document.getElementById('loading-progress-fill');
         const loadingStatus = document.getElementById('loading-status');
 
-        // Player input
+        // 玩家输入状态
         const inputState = { keyW:false, keyS:false, keyA:false, keyD:false, keySpace:false, keyShift:false, keyR:false };
 
-        // physical objects
+        // 物理相关
         let havokInstance = null;
         let havokPlugin = null;
-        let chassisMesh = null;    // invisible physics chassis root
+        let chassisMesh = null;      // 隐藏的车体物理壳
         let chassisImpostor = null;
-        let wheelVisuals = [];     // visual wheels (cylinders)
+        let wheelVisuals = [];       // 车轮视觉 (圆柱)
         let coinProto = null, coinMeshes = [], coinCount = 0;
 
-        // constants (use values from your original)
+        // 常量配置
         const VEHICLE_MASS = 2500;
         const MAX_ENGINE_FORCE = 9000;
         const MAX_STEER = 0.7;
@@ -352,25 +316,18 @@
         const COIN_SPAWN_RADIUS = 800;
         const COIN_HEIGHT = 0.7;
 
-        // wheel names discovered earlier (we'll still attempt to find them)
         const WHEEL_NAME_HINTS = [
-          "WheelFL", "WheelFR", "WheelBL", "WheelBR",
-          "wheel", "tyre", "tire", "Wheel"
+            "WheelFL", "WheelFR", "WheelBL", "WheelBR",
+            "wheel", "tyre", "tire", "Wheel"
         ];
         const BODY_NAME_HINT = "skinned_mesh_carpaint";
 
-        // timing
-        let lastTime = performance.now();
-
-        // ----------------------
         // 初始化场景
-        // ----------------------
         function createScene() {
             scene = new BABYLON.Scene(engine);
-            // sky color (use gradient-like by color only)
             scene.clearColor = new BABYLON.Color4(0.03, 0.03, 0.05, 1);
 
-            // cameras
+            // 摄像机
             followCam = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0,5,-10), scene);
             followCam.radius = 10;
             followCam.heightOffset = 4;
@@ -380,7 +337,7 @@
             followCam.attachControl(canvas, true);
             activeCam = followCam;
 
-            // lights
+            // 灯光
             const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), scene);
             hemi.intensity = 0.8;
             const dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1,-2,-1), scene);
@@ -388,98 +345,97 @@
             dir.intensity = 1.0;
             dir.shadowEnabled = true;
 
-            // placeholder ground (city models will overlay)
+            // 地面 (作为占位)
             const ground = BABYLON.MeshBuilder.CreateGround("ground", {width:2000, height:2000}, scene);
             ground.position.y = -1;
             const gmat = new BABYLON.StandardMaterial("gmat", scene);
-            gmat.diffuseColor = new BABYLON.Color3(0.06,0.06,0.06);
+            gmat.diffuseColor = new BABYLON.Color3(0.06, 0.06, 0.06);
             ground.material = gmat;
             ground.receiveShadows = true;
 
             return scene;
         }
 
-        // ----------------------
-        // Havok 初始化
-        // ----------------------
+        // Havok 物理初始化
         async function initHavok() {
             if (typeof HavokPhysics === 'undefined') {
-                throw new Error("HavokPhysics not available. Check Havok script.");
+                throw new Error("HavokPhysics not available. 检查 Havok 脚本是否加载.");
             }
             havokInstance = await HavokPhysics();
             havokPlugin = new BABYLON.HavokPlugin(true, havokInstance);
-            scene.enablePhysics(new BABYLON.Vector3(0,-9.82,0), havokPlugin);
+            scene.enablePhysics(new BABYLON.Vector3(0, -9.82, 0), havokPlugin);
         }
 
-        // ----------------------
-        // 加载资源（city, car, gold coin）
-        // ----------------------
+        // 加载资源：场景、车辆、金币
         async function loadAssetsWithProgress() {
             const assets = [
-                { file: "city1.glb", name: "city" },
+                { file: "city.glb", name: "city" },
                 { file: "car1.glb", name: "car" },
                 { file: "gold_coin.glb", name: "coin" }
             ];
             let done = 0;
             const step = () => {
                 done++;
-                const pct = Math.floor((done/assets.length)*100);
+                const pct = Math.floor((done/assets.length) * 100);
                 loadingFill.style.width = pct + "%";
                 loadingStatus.innerText = `(${pct}%) Loading ${done}/${assets.length}`;
             };
 
-            // city
+            // 加载城市场景 (静态)
             try {
-                const res = await BABYLON.SceneLoader.ImportMeshAsync(null, "./", "city1.glb", scene);
-                // set receive/cast shadows, create mesh impostor for each mesh
+                const res = await BABYLON.SceneLoader.ImportMeshAsync(null, "./", "city.glb", scene);
                 res.meshes.forEach(m => {
                     if (m instanceof BABYLON.Mesh) {
                         m.receiveShadows = true;
-                        // create physics mesh impostor (static)
                         try {
-                            m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.MeshImpostor, { mass:0, friction:1.0, restitution:0 }, scene);
-                            // optional: sleep to save CPU
+                            m.physicsImpostor = new BABYLON.PhysicsImpostor(
+                                m, BABYLON.PhysicsImpostor.MeshImpostor,
+                                { mass: 0, friction: 1.0, restitution: 0 }, scene
+                            );
+                            // 可选：设置睡眠来节省 CPU
                             if (m.physicsImpostor.sleep) m.physicsImpostor.sleep();
                         } catch(e) {
-                            console.warn("Failed creating MeshImpostor for city mesh:", m.name, e);
+                            console.warn("无法为城市网格创建物理模拟:", m.name, e);
                         }
                     }
                 });
             } catch(e) {
-                console.error("city load err", e);
+                console.error("city.glb 加载失败", e);
             } finally { step(); }
 
-            // car
+            // 加载车辆模型 (动态)
             try {
                 const res = await BABYLON.SceneLoader.ImportMeshAsync(null, "./", "car1.glb", scene);
-                // attempt to find body mesh by hint
+                // 尝试找到车身 Mesh 作为参考
                 let bodyMesh = res.meshes.find(m => m.name && m.name.toLowerCase().includes(BODY_NAME_HINT));
                 if (!bodyMesh) bodyMesh = res.meshes.find(m => m.name && /body/i.test(m.name));
                 if (!bodyMesh) bodyMesh = res.meshes.find(m => m instanceof BABYLON.Mesh);
-                if (!bodyMesh && res.meshes.length>0) bodyMesh = res.meshes[0];
+                if (!bodyMesh && res.meshes.length > 0) bodyMesh = res.meshes[0];
 
-                // create an invisible chassis box approximating bounding box
-                const bb = bodyMesh.getBoundingInfo().boundingBox;
-                const ext = bb.extendSize; // half extents
-                const approx = BABYLON.MeshBuilder.CreateBox("chassisBox", {
-                    width: ext.x*2.2, height: ext.y*2.4, depth: ext.z*2.2
-                }, scene);
-                approx.isVisible = false;
-                approx.position = bodyMesh.getAbsolutePosition().clone();
-                // parent the visual car meshes to the chassis box
-                res.meshes.forEach(m => {
-                    // skip if it's the approx box
-                    if (m === approx) return;
-                    // only reparent actual meshes (keep lights/cameras)
-                    if (m instanceof BABYLON.Mesh && m !== approx) {
-                        m.parent = approx;
-                    }
-                });
-                chassisMesh = approx;
-                // create physics impostor for chassis (box)
-                chassisImpostor = new BABYLON.PhysicsImpostor(chassisMesh, BABYLON.PhysicsImpostor.BoxImpostor, { mass: VEHICLE_MASS, friction: 0.6, restitution: 0 }, scene);
-
-                // find visual wheels in imported meshes by name hints; if not found, we'll create cylinders later
+                if (bodyMesh) {
+                    // 根据车身包围盒创建隐藏的物理盒子
+                    const bb = bodyMesh.getBoundingInfo().boundingBox;
+                    const ext = bb.extendSize;
+                    const approx = BABYLON.MeshBuilder.CreateBox("chassisBox", {
+                        width: ext.x * 2.2, height: ext.y * 2.4, depth: ext.z * 2.2
+                    }, scene);
+                    approx.isVisible = false;
+                    approx.position = bodyMesh.getAbsolutePosition().clone();
+                    // 将车辆可视部件附加到该物理盒子
+                    res.meshes.forEach(m => {
+                        if (m === approx) return;
+                        if (m instanceof BABYLON.Mesh && m !== approx) {
+                            m.parent = approx;
+                        }
+                    });
+                    chassisMesh = approx;
+                    // 为车体盒子创建物理刚体
+                    chassisImpostor = new BABYLON.PhysicsImpostor(
+                        chassisMesh, BABYLON.PhysicsImpostor.BoxImpostor,
+                        { mass: VEHICLE_MASS, friction: 0.6, restitution: 0 }, scene
+                    );
+                }
+                // 识别车轮 Mesh
                 const foundWheels = [];
                 res.meshes.forEach(m => {
                     if (!(m instanceof BABYLON.Mesh)) return;
@@ -491,127 +447,119 @@
                         }
                     }
                 });
-                // keep up to 4 visuals, ensure they are not the chassis
                 if (foundWheels.length >= 4) {
-                    for (let i=0;i<4;i++){
+                    for (let i = 0; i < 4; i++) {
                         const w = foundWheels[i];
-                        // ensure wheel rotation quaternion present
-                        if (w) {
-                            wheelVisuals.push(w);
-                        }
+                        if (w) wheelVisuals.push(w);
                     }
                 } else {
-                    // create 4 cylinder wheels and add to scene, we'll position them later
-                    for (let i=0;i<4;i++){
-                        const cyl = BABYLON.MeshBuilder.CreateCylinder("wheel_vis_"+i, {diameter:0.8, height:0.4, tessellation:24}, scene);
+                    // 未识别到足够的车轮时，创建备用圆柱体车轮
+                    for (let i = 0; i < 4; i++) {
+                        const cyl = BABYLON.MeshBuilder.CreateCylinder("wheel_vis_" + i, { diameter: 0.8, height: 0.4, tessellation: 24 }, scene);
                         const mat = new BABYLON.StandardMaterial("wheelMat", scene);
-                        mat.diffuseColor = new BABYLON.Color3(0.08,0.08,0.08);
+                        mat.diffuseColor = new BABYLON.Color3(0.08, 0.08, 0.08);
                         cyl.material = mat;
                         cyl.rotationQuaternion = null;
                         wheelVisuals.push(cyl);
                     }
                 }
             } catch(e) {
-                console.error("car load err", e);
+                console.error("car1.glb 加载失败", e);
             } finally { step(); }
 
-            // coin
+            // 加载金币模型 (克隆用原型)
             try {
                 const res = await BABYLON.SceneLoader.ImportMeshAsync(null, "./", "gold_coin.glb", scene);
-                // take first mesh as prototype
-                if (res.meshes && res.meshes.length>0) {
+                if (res.meshes && res.meshes.length > 0) {
                     coinProto = res.meshes[0];
-                    // hide proto from scene (we'll clone it)
-                    coinProto.isVisible = false;
+                    coinProto.isVisible = false; // 隐藏原型
                 }
             } catch(e) {
-                console.error("coin load fail", e);
+                console.error("gold_coin.glb 加载失败", e);
                 coinProto = null;
             } finally { step(); }
         }
 
-        // ----------------------
-        // 生成金币（使用 clone） - 保留原逻辑数量范围
-        // ----------------------
+        // 生成金币 (基于原型克隆，或降级为圆盘)
         function spawnCoinsWhenReady() {
-            // coinProto may be null if failed; fallback to simple discs if so
-            const num = Math.floor(Math.random()*(COIN_MAX-COIN_MIN+1))+COIN_MIN;
-            for (let i=0;i<num;i++){
-                const angle = Math.random()*Math.PI*2;
-                const radius = Math.random()*COIN_SPAWN_RADIUS;
-                const x = Math.cos(angle)*radius + (Math.random()-0.5)*20;
-                const z = Math.sin(angle)*radius + (Math.random()-0.5)*20;
-                const y = COIN_HEIGHT + (Math.random()*0.3 - 0.15);
+            const num = Math.floor(Math.random() * (COIN_MAX - COIN_MIN + 1)) + COIN_MIN;
+            for (let i = 0; i < num; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * COIN_SPAWN_RADIUS;
+                const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 20;
+                const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 20;
+                const y = COIN_HEIGHT + (Math.random() * 0.3 - 0.15);
                 if (coinProto) {
-                    const clone = coinProto.clone("coin_"+i);
+                    const clone = coinProto.clone("coin_" + i);
                     clone.isVisible = true;
-                    clone.position = new BABYLON.Vector3(x,y,z);
-                    clone.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
+                    clone.position = new BABYLON.Vector3(x, y, z);
+                    clone.rotation = new BABYLON.Vector3(0, Math.random() * Math.PI * 2, 0);
                     scene.addMesh(clone);
                     coinMeshes.push(clone);
                 } else {
-                    // fallback: create simple disc
-                    const disc = BABYLON.MeshBuilder.CreateCylinder("coin_"+i, {diameter:0.6, height:0.06, tessellation:24}, scene);
+                    // 简化金色色圆盘
+                    const disc = BABYLON.MeshBuilder.CreateCylinder("coin_" + i, { diameter: 0.6, height: 0.06, tessellation: 24 }, scene);
                     const cm = new BABYLON.StandardMaterial("coinMat", scene);
-                    cm.diffuseColor = new BABYLON.Color3(1,0.84,0);
+                    cm.diffuseColor = new BABYLON.Color3(1, 0.84, 0);
                     disc.material = cm;
-                    disc.position = new BABYLON.Vector3(x,y,z);
+                    disc.position = new BABYLON.Vector3(x, y, z);
                     scene.addMesh(disc);
                     coinMeshes.push(disc);
                 }
             }
         }
 
-        // ----------------------
-        // 输入监听（WASD, Shift, Space, R, V）
-        // ----------------------
+        // 玩家输入监听
         window.addEventListener('keydown', (e) => {
             const k = e.key.toLowerCase();
-            if (k==='w') inputState.keyW = true;
-            if (k==='s') inputState.keyS = true;
-            if (k==='a') inputState.keyA = true;
-            if (k==='d') inputState.keyD = true;
-            if (k===' ') { inputState.keySpace = true; e.preventDefault(); }
-            if (k==='shift') inputState.keyShift = true;
-            if (k==='r') { inputState.keyR = true; respawnCar(); }
-            if (k==='v') toggleCamera();
+            if (k === 'w') inputState.keyW = true;
+            if (k === 's') inputState.keyS = true;
+            if (k === 'a') inputState.keyA = true;
+            if (k === 'd') inputState.keyD = true;
+            if (k === ' ') { inputState.keySpace = true; e.preventDefault(); }
+            if (k === 'shift') inputState.keyShift = true;
+            if (k === 'r') { inputState.keyR = true; respawnCar(); }
+            if (k === 'v') toggleCamera();
         });
         window.addEventListener('keyup', (e) => {
             const k = e.key.toLowerCase();
-            if (k==='w') inputState.keyW = false;
-            if (k==='s') inputState.keyS = false;
-            if (k==='a') inputState.keyA = false;
-            if (k==='d') inputState.keyD = false;
-            if (k===' ') inputState.keySpace = false;
-            if (k==='shift') inputState.keyShift = false;
-            if (k==='r') inputState.keyR = false;
+            if (k === 'w') inputState.keyW = false;
+            if (k === 's') inputState.keyS = false;
+            if (k === 'a') inputState.keyA = false;
+            if (k === 'd') inputState.keyD = false;
+            if (k === ' ') inputState.keySpace = false;
+            if (k === 'shift') inputState.keyShift = false;
+            if (k === 'r') inputState.keyR = false;
         });
 
-        // ----------------------
-        // 车辆控制逻辑（基于 chassisImpostor applyImpulse/torgue + simple suspension raycast）
-        // ----------------------
+        // 更新车辆物理 (使用力和扭矩)
         let engineForce = 0, steeringValue = 0;
         function updateVehicle(dt) {
             if (!chassisImpostor || !chassisMesh) return;
             engineForce = 0; steeringValue = 0;
-            // get velocity
             let vel = new BABYLON.Vector3(0,0,0);
             try { vel = chassisImpostor.getLinearVelocity(); } catch(e) {}
-            const speedKmh = vel.length() * 3.6;
 
-            // steering
+            // 转向输入
             if (inputState.keyA) steeringValue = MAX_STEER;
             else if (inputState.keyD) steeringValue = -MAX_STEER;
 
-            // throttle / brake
-            if (inputState.keyW) { engineForce = -MAX_ENGINE_FORCE; gearEl.textContent = 'D'; }
-            else if (inputState.keyS) { engineForce = MAX_ENGINE_FORCE * 0.5; gearEl.textContent = 'R'; }
-            else { gearEl.textContent = (speedKmh < 1) ? 'P' : 'N'; }
+            // 油门/刹车
+            if (inputState.keyW) {
+                engineForce = -MAX_ENGINE_FORCE;
+                gearEl.textContent = 'D';
+            }
+            else if (inputState.keyS) {
+                engineForce = MAX_ENGINE_FORCE * 0.5;
+                gearEl.textContent = 'R';
+            }
+            else {
+                gearEl.textContent = (vel.length() * 3.6 < 1) ? 'P' : 'N';
+            }
 
-            // nitro
+            // 氮气加速
             if (inputState.keyShift && engineForce !== 0) {
                 engineForce *= 2.5;
-                // optional flame visual if present (try to find 'flame' mesh)
                 const flame = scene.getMeshByName('flameMesh') || scene.getMeshByName('flame');
                 if (flame) flame.isVisible = true;
             } else {
@@ -619,23 +567,23 @@
                 if (flame) flame.isVisible = false;
             }
 
-            // compute forward in world space
-            const forwardLocal = new BABYLON.Vector3(0,0,1);
+            // 计算向前方向（世界空间）
+            const forwardLocal = new BABYLON.Vector3(0, 0, 1);
             const forwardWorld = BABYLON.Vector3.TransformCoordinates(forwardLocal, chassisMesh.getWorldMatrix());
             const chassisPos = chassisMesh.getAbsolutePosition();
 
-            // apply forward impulse (scale by dt)
+            // 应用推力
             const forceVec = forwardWorld.subtract(chassisPos).normalize().scale(engineForce * dt);
-            try { chassisImpostor.applyImpulse(forceVec, chassisMesh.getAbsolutePosition()); } catch(e){}
+            try { chassisImpostor.applyImpulse(forceVec, chassisMesh.getAbsolutePosition()); } catch(e) {}
 
-            // steering as torque around Y
+            // 应用转向扭矩 (绕Y轴)
             if (Math.abs(steeringValue) > 1e-4) {
                 const torqueVal = steeringValue * Math.min(2500, Math.max(200, vel.length() * 800));
                 const torque = new BABYLON.Vector3(0, torqueVal * dt, 0);
                 try { chassisImpostor.applyTorque(torque); } catch(e) {}
             }
 
-            // handbrake / space -> strong damping via opposite impulse
+            // 手刹 (SPACE键) -> 强制阻力
             if (inputState.keySpace) {
                 const brakeImpulse = vel.scale(-0.5 * dt * 1000);
                 try { chassisImpostor.applyImpulse(brakeImpulse, chassisMesh.getAbsolutePosition()); } catch(e) {}
@@ -643,77 +591,67 @@
             }
         }
 
-        // ----------------------
-        // 轮子视觉同步（基于 chassis bounding box offsets）
-        // ----------------------
+        // 更新车轮视觉位置
         function updateWheelVisuals(dt) {
             if (!chassisMesh) return;
             const chassisPos = chassisMesh.getAbsolutePosition();
             const rot = chassisMesh.absoluteRotationQuaternion || BABYLON.Quaternion.Identity();
-            // offsets roughly same as original: FL, FR, RL, RR
+            // 各车轮偏移 (前左, 前右, 后左, 后右)
             const offsets = [
                 new BABYLON.Vector3(-1.0, -0.4, 1.4),
                 new BABYLON.Vector3( 1.0, -0.4, 1.4),
                 new BABYLON.Vector3(-1.0, -0.4, -1.4),
                 new BABYLON.Vector3( 1.0, -0.4, -1.4)
             ];
-            for (let i=0;i<wheelVisuals.length;i++){
+            for (let i = 0; i < wheelVisuals.length; i++) {
                 const w = wheelVisuals[i];
-                const local = offsets[i % offsets.length].clone();
+                const local = offsets[i].clone();
                 local.rotateByQuaternionToRef(rot, local);
-                const worldPos = chassisPos.add(local);
-                w.position = worldPos;
-                // spin around local X or Y to simulate rotation (simple)
+                w.position = chassisPos.add(local);
+                // 简单旋转动画
                 if (w.rotation) {
                     w.rotation.x += (chassisImpostor ? chassisImpostor.getLinearVelocity().length() * 0.1 * dt : 0.02);
                 } else if (w.rotationQuaternion) {
-                    // convert small rotation
                     w.rotate(BABYLON.Axis.X, 0.05 * dt, BABYLON.Space.LOCAL);
                 }
             }
         }
 
-        // ----------------------
-        // HUD 更新与日夜循环（保持与你原逻辑类似）
-        // ----------------------
-        const daySky = new BABYLON.Color3(0.529,0.808,0.922);
-        const nightSky = new BABYLON.Color3(0.02,0.02,0.04);
+        // 更新 HUD 和 日夜循环
+        const daySky = new BABYLON.Color3(0.529, 0.808, 0.922);
+        const nightSky = new BABYLON.Color3(0.02, 0.02, 0.04);
         const cycleDurationSec = 300;
-
         function updateHUDAndTime(dt, now) {
             if (!chassisImpostor) return;
-            // speed
             let vel = new BABYLON.Vector3(0,0,0);
             try { vel = chassisImpostor.getLinearVelocity(); } catch(e) {}
             const speedKmh = vel.length() * 3.6;
             speedEl.textContent = Math.floor(speedKmh);
             rpmEl.textContent = Math.min(99, Math.floor(speedKmh * 1.5));
-            let throttlePercent = engineForce !== 0 ? Math.min(100, Math.abs(engineForce) / (MAX_ENGINE_FORCE*2.5) * 100) : 0;
+            let throttlePercent = engineForce !== 0 ?
+                Math.min(100, Math.abs(engineForce) / (MAX_ENGINE_FORCE * 2.5) * 100) : 0;
             throttleEl.textContent = Math.floor(throttlePercent) + '%';
             coinCountEl.textContent = coinCount;
 
-            // day/night
+            // 日夜循环 (简单背景过渡)
             const tSec = now / 1000;
             const cycle = tSec % cycleDurationSec;
             const half = cycleDurationSec / 2;
             let t = 0;
             let label = "DAY";
             if (cycle < half) {
-                t = cycle/half;
+                t = cycle / half;
                 label = (t < 0.2) ? "DAY" : (t < 0.8) ? "TWILIGHT" : "NIGHT";
             } else {
-                t = (cycle-half)/half;
+                t = (cycle - half) / half;
                 label = (t < 0.2) ? "NIGHT" : (t < 0.8) ? "DAWN" : "DAY";
             }
-            timeEl && (timeEl.textContent = label);
-            // simple background lerp
+            timeEl.textContent = label;
             const col = BABYLON.Color3.Lerp(daySky, nightSky, t);
             scene.clearColor = new BABYLON.Color4(col.r, col.g, col.b, 1);
         }
 
-        // ----------------------
-        // 金币收集检测（安全的距离检测）
-        // ----------------------
+        // 检测车辆与金币的碰撞 (简单距离判断)
         function checkCoins() {
             if (!chassisMesh) return;
             const carPos = chassisMesh.getAbsolutePosition();
@@ -723,20 +661,18 @@
                 const d = BABYLON.Vector3.Distance(carPos, c.getAbsolutePosition());
                 if (d < 1.0) {
                     try { scene.removeMesh(c, true); } catch(e){}
-                    coinMeshes.splice(i,1);
+                    coinMeshes.splice(i, 1);
                     coinCount++;
                     localStorage.setItem('goldCoinCount', coinCount);
                     coinCountEl.textContent = coinCount;
                 } else {
-                    // rotate coin for visibility
+                    // 转动金币以示可见
                     c.rotation.y += 0.02;
                 }
             }
         }
 
-        // ----------------------
-        // Respawn
-        // ----------------------
+        // 重置车辆位置
         const initialPosition = new BABYLON.Vector3(90, 0.6, 0);
         function respawnCar() {
             if (!chassisImpostor || !chassisMesh) return;
@@ -746,12 +682,10 @@
                 chassisMesh.position = initialPosition.clone();
                 chassisImpostor.setDeltaPosition(initialPosition);
                 gearEl.textContent = 'P';
-            } catch(e) { console.warn("respawn err", e); }
+            } catch(e) { console.warn("车辆重置失败", e); }
         }
 
-        // ----------------------
-        // Camera toggle (follow vs cockpit)
-        // ----------------------
+        // 切换视角
         function toggleCamera() {
             if (!chassisMesh) return;
             if (!cockpitCam) {
@@ -764,89 +698,71 @@
             activeCam.attachControl(canvas, true);
         }
 
-        // ----------------------
-        // 主循环启动
-        // ----------------------
+        // 主循环
         let lastFrame = performance.now();
         function startMainLoop() {
             engine.runRenderLoop(() => {
                 const now = performance.now();
-                const dt = Math.max(1/240, (now - lastFrame) / 1000); // clamp dt
+                const dt = Math.max(1/240, (now - lastFrame) / 1000);
                 lastFrame = now;
-
-                // step Havok physics is handled by plugin automatically via runRenderLoop
-
-                // vehicle update
+                // Havok 物理计算由插件自动处理
                 updateVehicle(dt);
-
-                // wheel visuals
                 updateWheelVisuals(dt);
-
-                // coin detection
                 checkCoins();
-
-                // hud & day/night
                 updateHUDAndTime(dt, now);
-
-                // render
                 if (scene) scene.render();
             });
         }
 
-        // ----------------------
-        // 启动流程（绑定 PLAY 按钮）
-        // ----------------------
+        // 点击播放按钮开始
         document.getElementById('start-button').addEventListener('click', async () => {
-            // show loading
+            // 隐藏启动画面，显示加载界面
             document.getElementById('splash').style.opacity = '0';
             document.getElementById('loading-screen').style.display = 'flex';
-            setTimeout(()=> { document.getElementById('splash').style.display='none'; }, 450);
+            setTimeout(() => { document.getElementById('splash').style.display = 'none'; }, 450);
 
-            // create scene and init physics
+            // 创建场景并初始化物理
             createScene();
             try {
                 await initHavok();
             } catch(e) {
-                alert("Havok 初始化失败，请检查网络或 Havok 脚本。Console 有详情。");
+                alert("Havok 初始化失败，请检查网络或 Havok 脚本。Console 查看详情。");
                 console.error(e);
                 return;
             }
 
-            // load assets
+            // 加载模型资源
             await loadAssetsWithProgress();
 
-            // spawn coins
+            // 生成金币
             spawnCoinsWhenReady();
 
-            // set follow camera lock if chassis exists
+            // 将摄像机锁定到车辆
             if (followCam && chassisMesh) {
                 followCam.lockedTarget = chassisMesh;
             }
 
-            // restore coin count
+            // 恢复本地存储的金币数
             const stored = localStorage.getItem('goldCoinCount');
-            coinCount = stored ? parseInt(stored,10) : 0;
+            coinCount = stored ? parseInt(stored, 10) : 0;
             coinCountEl.textContent = coinCount;
             splashCoinCountEl.textContent = coinCount;
 
-            // show HUD
+            // 显示 HUD
             document.getElementById('loading-screen').style.opacity = '0';
-            setTimeout(()=> {
+            setTimeout(() => {
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('hud-layer').classList.remove('hidden');
             }, 300);
 
-            // start main loop
+            // 启动渲染循环
             startMainLoop();
         });
 
-        // resize handling
-        window.addEventListener('resize', ()=> engine.resize());
+        // 窗口调整大小时更新画布
+        window.addEventListener('resize', () => engine.resize());
 
-        // initialize splash small three render (optional): we skip heavy splash canvas - keep simple rotating text
-
-        // done
-        console.log("Migration HTML initialized. Click PLAY to start.");
+        console.log("Babylon 场景已初始化，点击 PLAY NOW 开始游戏。");
     })();
     </script>
 </body>
