@@ -465,12 +465,13 @@
             carMesh.scale.set(104.7, 104.7, 104.7);
             carMesh.rotation.y = Math.PI;
             // 把车整体往下移
-            carMesh.position.y = -1.9;
+            // *** GLB 视觉修改点 *** 从 -1.9 调整为 -2.1，视觉上进一步降低 0.2
+            carMesh.position.y = -2.1;
             carMesh.traverse((node) => { if (node.isMesh) node.castShadow = true; });
             scene.add(carMesh);
 
             // ========== 前灯（白色，白天关闭，夜间打开） ==========
-            // 为了避免初始强度为 0 带来的潜在问题，这里使用 1.0，但会在 setHeadlights 中覆盖
+            // 确保 SpotLight 强度不为 0，否则阴影不会工作
             headlightLeft = new THREE.SpotLight(0xffffff, 1.0, 60, Math.PI / 7, 0.2, 2);
             headlightLeft.castShadow = true;
             headlightLeft.shadow.mapSize.width = 1024;
@@ -634,7 +635,7 @@
     }
 
     // =============================================================================
-    // ** 车辆物理核心 (修改了轮子连接点高度) **
+    // ** 车辆物理核心 (重新应用物理调整) **
     // =============================================================================
     function initVehicle() {
         const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
@@ -671,7 +672,7 @@
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
-                // *** 修改点 *** 将 Y 从 0 调整为 -0.2，降低轮子连接点，使汽车看起来更低
+                // *** 物理修改点 *** 将 Y 从 0 调整为 -0.2，降低轮子连接点
                 chassisConnectionPointLocal: new CANNON.Vec3(x, -0.2, z) 
             };
         }
@@ -1024,7 +1025,7 @@ function setHeadlights() {
     const tSec = performance.now() / 1000;
     const cycle = tSec % cycleDurationSec;
     const isNight = cycle >= (cycleDurationSec / 2);
-    // 确保夜间强度大于 0
+    // 强度调整到夜间
     headlightLeft.intensity = isNight ? 3.0 : 0.0;
     headlightRight.intensity = isNight ? 3.0 : 0.0;
 }
