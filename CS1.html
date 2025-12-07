@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -237,7 +235,6 @@
         <div id="splash-three-container"></div>
         <h1>HYPER DRIVE</h1>
         <p class="splash-subtitle">MADE BY ZHANYI ZHOU</p>
-        <!-- 首页金币显示 -->
         <div style="margin-top:16px; color:#FFD700; font-weight:700;">Gold Coin collected: <span id="splash-coin-count">0</span></div>
         <button id="start-button" onclick="startGame()">PLAY NOW</button>
     </div>
@@ -277,7 +274,6 @@
         </div>
 
         <div class="hud-top-right">
-            <!-- 替换原 DRIVE_REWARD 为金币显示 -->
             <div class="instrument" id="hud-coin">
                 <span class="label">GOLD COIN</span>
                 <span class="value" id="coin-count">0</span>
@@ -474,7 +470,8 @@
             scene.add(carMesh);
 
             // ========== 前灯（白色，白天关闭，夜间打开） ==========
-            headlightLeft = new THREE.SpotLight(0xffffff, 0, 60, Math.PI / 7, 0.2, 2);
+            // 为了避免初始强度为 0 带来的潜在问题，这里使用 1.0，但会在 setHeadlights 中覆盖
+            headlightLeft = new THREE.SpotLight(0xffffff, 1.0, 60, Math.PI / 7, 0.2, 2);
             headlightLeft.castShadow = true;
             headlightLeft.shadow.mapSize.width = 1024;
             headlightLeft.shadow.mapSize.height = 1024;
@@ -485,7 +482,7 @@
             headlightLeft.target = leftTarget;
             carMesh.add(headlightLeft);
 
-            headlightRight = new THREE.SpotLight(0xffffff, 0, 60, Math.PI / 7, 0.2, 2);
+            headlightRight = new THREE.SpotLight(0xffffff, 1.0, 60, Math.PI / 7, 0.2, 2);
             headlightRight.castShadow = true;
             headlightRight.shadow.mapSize.width = 1024;
             headlightRight.shadow.mapSize.height = 1024;
@@ -637,7 +634,7 @@
     }
 
     // =============================================================================
-    // ** 车辆物理核心 (保持原实现) **
+    // ** 车辆物理核心 (修改了轮子连接点高度) **
     // =============================================================================
     function initVehicle() {
         const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
@@ -674,7 +671,8 @@
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
-                chassisConnectionPointLocal: new CANNON.Vec3(x, y, z)
+                // *** 修改点 *** 将 Y 从 0 调整为 -0.2，降低轮子连接点，使汽车看起来更低
+                chassisConnectionPointLocal: new CANNON.Vec3(x, -0.2, z) 
             };
         }
 
@@ -1026,6 +1024,7 @@ function setHeadlights() {
     const tSec = performance.now() / 1000;
     const cycle = tSec % cycleDurationSec;
     const isNight = cycle >= (cycleDurationSec / 2);
+    // 确保夜间强度大于 0
     headlightLeft.intensity = isNight ? 3.0 : 0.0;
     headlightRight.intensity = isNight ? 3.0 : 0.0;
 }
