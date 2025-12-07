@@ -466,7 +466,7 @@
             carMesh.rotation.y = Math.PI;
             // 把车整体往下移
             // *** GLB 视觉修改点 *** 从 -1.9 调整为 -2.1，视觉上进一步降低 0.2
-            carMesh.position.y = -2.1;
+            carMesh.position.y = -2.9;
             carMesh.traverse((node) => { if (node.isMesh) node.castShadow = true; });
             scene.add(carMesh);
 
@@ -672,8 +672,7 @@
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
-                // *** 物理修改点 *** 将 Y 从 0 调整为 -0.2，降低轮子连接点
-                chassisConnectionPointLocal: new CANNON.Vec3(x, -0.2, z) 
+                chassisConnectionPointLocal: new CANNON.Vec3(x, y, z) 
             };
         }
 
