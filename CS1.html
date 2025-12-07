@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -358,6 +359,9 @@
     const coinCountEl = document.getElementById('coin-count');
     const splashCoinCountEl = document.getElementById('splash-coin-count');
 
+    let headlightLeft = null, headlightRight = null;
+    let flameMesh = null;
+
     let engineForce = 0;
     let steeringValue = 0;
 
@@ -451,7 +455,7 @@
         simpleLoader.load('car1.glb', (gltf) => {
             splashCarModel = gltf.scene;
             splashCarModel.scale.set(104.7,104.7,104.7);
-            splashCarModel.position.set(0,-0.5,0);
+            splashCarModel.position.set(0,-1.0,0);
             splashScene.add(splashCarModel);
         });
     }
@@ -464,12 +468,38 @@
             carMesh = gltf.scene;
             carMesh.scale.set(104.7, 104.7, 104.7);
             carMesh.rotation.y = Math.PI;
-            carMesh.position.y = -0.5;
+            // 把车整体往下移
+            carMesh.position.y = -1.0;
             carMesh.traverse((node) => { if (node.isMesh) node.castShadow = true; });
             scene.add(carMesh);
 
+            // ========== 前灯（白色，白天关闭，夜间打开） ==========
+            headlightLeft = new THREE.SpotLight(0xffffff, 0, 60, Math.PI / 7, 0.2, 2);
+            headlightLeft.castShadow = true;
+            headlightLeft.shadow.mapSize.width = 1024;
+            headlightLeft.shadow.mapSize.height = 1024;
+            headlightLeft.position.set(-0.6, 0.4, 2.2);
+            const leftTarget = new THREE.Object3D();
+            leftTarget.position.set(-0.6, 0.4, 10);
+            carMesh.add(leftTarget);
+            headlightLeft.target = leftTarget;
+            carMesh.add(headlightLeft);
+
+            headlightRight = new THREE.SpotLight(0xffffff, 0, 60, Math.PI / 7, 0.2, 2);
+            headlightRight.castShadow = true;
+            headlightRight.shadow.mapSize.width = 1024;
+            headlightRight.shadow.mapSize.height = 1024;
+            headlightRight.position.set(0.6, 0.4, 2.2);
+            const rightTarget = new THREE.Object3D();
+            rightTarget.position.set(0.6, 0.4, 10);
+            carMesh.add(rightTarget);
+            headlightRight.target = rightTarget;
+            carMesh.add(headlightRight);
+            // ========= 结束前灯 ==========
+
+            // 原来的“火焰/尾焰” — 已改为白色（去掉蓝色）
             const flameGeometry = new THREE.ConeGeometry(0.3, 1, 16);
-            const flameMaterial = new THREE.MeshBasicMaterial({ color: 0x00FFFF, transparent: true, opacity: 0.8 });
+            const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.75 });
             flameMesh = new THREE.Mesh(flameGeometry, flameMaterial);
             flameMesh.rotation.x = -Math.PI / 2;
             flameMesh.position.set(0, 0, 2.5);
@@ -495,17 +525,14 @@
                     node.castShadow = true;
                     node.receiveShadow = true;
 
-                    // ** 城市自发光逻辑 **
-                    if (node.name.includes('Emissive')) {
-                        node.material = new THREE.MeshBasicMaterial({ color: 0x00FFFF, fog: false });
-                        node.userData.isEmissive = true;
-                    }
-                    else if(node.material) {
-                        const originalMaterial = node.material;
-                        const emsMaterial = originalMaterial.clone();
-                        emsMaterial.emissive = new THREE.Color(0x0a0a1a);
-                        emsMaterial.emissiveIntensity = 0.5;
-                        node.material = emsMaterial;
+                    // Remove city emissive: clone material and zero emissive (no self-illumination)
+                    if (node.material) {
+                        const mat = node.material.clone ? node.material.clone() : node.material;
+                        if (mat.emissive !== undefined) {
+                            mat.emissive = new THREE.Color(0x000000);
+                            mat.emissiveIntensity = 0;
+                        }
+                        node.material = mat;
                         node.userData.isStandardMaterial = true;
                     }
                 }
@@ -835,7 +862,7 @@
         throttleEl.textContent = throttlePercent.toFixed(0) + '%';
 
         // 不再有 reward 逻辑（已移除）
-        updateDayNight(time);
+        updateDayNight(time); setHeadlights();
         // 同步金币 HUD
         coinCountEl.textContent = coinCount;
     }
@@ -992,7 +1019,18 @@
     // =============================================================================
     // ** 主循环 **
     // =============================================================================
-    function animate(time) {
+    
+
+function setHeadlights() {
+    if (!headlightLeft || !headlightRight) return;
+    const tSec = performance.now() / 1000;
+    const cycle = tSec % cycleDurationSec;
+    const isNight = cycle >= (cycleDurationSec / 2);
+    headlightLeft.intensity = isNight ? 3.0 : 0.0;
+    headlightRight.intensity = isNight ? 3.0 : 0.0;
+}
+
+function animate(time) {
         requestAnimationFrame(animate);
         if (!chassisBody || !world) return;
         const fixedTimeStep = 1/60;
