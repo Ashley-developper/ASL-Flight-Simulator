@@ -961,7 +961,7 @@
         if (!headlightLeft || !headlightRight) return;
 
         // 目标强度
-        const targetIntensity = shouldBeOn ? 15.0 : 0.0; // 亮度设高一点，因为车缩放很大
+        const targetIntensity = shouldBeOn ? 1.0 : 0.0; // 亮度设高一点，因为车缩放很大
         const targetOpacity = shouldBeOn ? 1.0 : 0.0;
 
         // 简单的线性插值 (Lerp) 实现呼吸灯/渐变效果
