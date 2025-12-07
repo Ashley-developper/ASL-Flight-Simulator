@@ -507,11 +507,11 @@
             // A. 创建聚光灯 (照亮路面)
             const spot = new THREE.SpotLight(0xffffff, 0); // 初始亮度0
             
-            // ************ 关键修改区域 ************
-            spot.angle = Math.PI / 8; // **调整：角度更小，更聚光 (约22.5度)**
+            // ************ 关键修改区域：再次大幅度收缩角度和距离 ************
+            spot.angle = Math.PI / 10;   // **调整：更聚光 (约18度)**
             spot.penumbra = 0.3;      
-            spot.decay = 4;           // **调整：增大衰减（使亮度参数更敏感，例如 12 会显得更暗）**
-            spot.distance = 250;      // **调整：照射距离（适当增加）**
+            spot.decay = 4;           // **保持高衰减（让亮度参数更敏感）**
+            spot.distance = 150;      // **调整：大幅度收缩照射距离**
             // ************ ************** ************
             
             spot.castShadow = true;
@@ -949,10 +949,9 @@
     function setHeadlights(shouldBeOn) {
         if (!headlightLeft || !headlightRight) return;
 
-        // ******** 调高此值让灯光更亮，调低此值让灯光更暗 ********
-        // 例如：使用 12.0 来获得较暗的普通车灯效果
-        // 例如：使用 50.0 来获得明亮的超跑车灯效果
-        const targetIntensity = shouldBeOn ? 50.0 : 0.0; 
+        // ******** 关键修改：将目标强度上限大幅度降低到 15.0 ********
+        // 如果 15.0 还是太亮，请尝试 5.0 或更低。
+        const targetIntensity = shouldBeOn ? 15.0 : 0.0; 
         const targetOpacity = shouldBeOn ? 1.0 : 0.0;
 
         // 简单的线性插值 (Lerp) 实现呼吸灯/渐变效果
@@ -1019,7 +1018,8 @@
         scene.traverse((node) => {
             if (node.isMesh && node.userData.isStandardMaterial) {
                 const intensity = isNight ? (1 - Math.abs(t - 0.5) * 2) * 2 : 0;
-                node.material.emissiveIntensity = THREE.MathUtils.lerp(0.1, 1.0, intensity);
+                // 城市夜间发光：确保这个值足够低，避免它本身过曝
+                node.material.emissiveIntensity = THREE.MathUtils.lerp(0.01, 0.5, intensity); 
             }
             if (node.isMesh && node.userData.isEmissive) {
                 node.visible = isNight;
