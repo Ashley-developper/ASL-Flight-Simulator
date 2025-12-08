@@ -315,12 +315,12 @@
     const maxEngineForce = 9000 * SCALE_FACTOR; 
     // brakeForce 原本是 40, 现为 40 * 3.0 = 120
     const brakeForce = 40 * SCALE_FACTOR; 
-    const maxSteerVal = 0.7; // 保持不变 (角度)
+    const maxSteerVal = 0.9; // 保持不变 (角度)
     // VISUAL_Y_OFFSET 原本是 -0.9, 现为 -0.9 * 3.0 = -2.7
     const VISUAL_Y_OFFSET = -0.9 * SCALE_FACTOR; 
 
     // ** 车辆初始位置 ** (Y: 0.7 * 3.0 = 2.1)
-    const initialCarPosition = new CANNON.Vec3(90, 0.7 * SCALE_FACTOR, 0); 
+    const initialCarPosition = new CANNON.Vec3(90, 1.2 * SCALE_FACTOR, 0); 
 
     let staticBodies = [];
     let carMesh = null;
