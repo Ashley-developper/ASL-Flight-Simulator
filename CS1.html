@@ -267,11 +267,7 @@
                 <span class="label">Heading</span>
                 <span class="value" id="hud-hdg">000</span> <span class="unit">DEG</span>
             </div>
-            <div class="instrument">
-                <span class="label">Time</span>
-                <span class="value" id="hud-time">DAY</span>
             </div>
-        </div>
 
         <div class="hud-top-right">
             <div class="instrument" id="hud-coin">
@@ -315,14 +311,10 @@
     let wheelMeshes = [];
     let lastTime = undefined;
 
-    // ** 环境光/日夜切换变量 **
-    let hemiLight, dirLight;
-    const daySkyColor = new THREE.Color(0x87CEEB);
-    const nightSkyColor = new THREE.Color(0x050510);
+    // ** 环境光/日夜切换变量 (已移除，但保留颜色常量以设置静态环境) **
+    const daySkyColor = new THREE.Color(0x87CEEB); // 静态天空色
     const dayHemiSky = new THREE.Color(0xffffff);
-    const nightHemiSky = new THREE.Color(0x111133);
     const dayHemiGround = new THREE.Color(0x3b4c5a);
-    const nightHemiGround = new THREE.Color(0x04040a);
 
     // ** 物理调整参数 **
     const maxEngineForce = 9000; 
@@ -330,12 +322,7 @@
     const maxSteerVal = 0.7;
 
     // ** 车辆视觉偏移 - 核心修正点 **
-    // 原始模型的中心位于物理底盘中心，但 GLB 模型需要向下偏移 -1.9 才能让轮胎接地。
-    // 我们将整体降到 -2.2, 即比默认低 0.3m
     const VISUAL_Y_OFFSET = -0.9; 
-
-    // ** 日夜循环时间 **
-    const cycleDurationSec = 300; // 5 分钟
 
     // ** 车辆初始位置 **
     const initialCarPosition = new CANNON.Vec3(90, 0.6, 0);
@@ -357,12 +344,12 @@
     const rpmEl = document.getElementById('hud-rpm');
     const gearEl = document.getElementById('hud-gear');
     const throttleEl = document.getElementById('hud-throttle');
-    const timeEl = document.getElementById('hud-time');
+    // const timeEl = document.getElementById('hud-time'); // REMOVED
     const coinCountEl = document.getElementById('coin-count');
     const splashCoinCountEl = document.getElementById('splash-coin-count');
 
-    let headlightLeft = null, headlightRight = null;
-    let headlightFlares = []; // 用来存灯光的光晕 sprite
+    // let headlightLeft = null, headlightRight = null; // REMOVED
+    // let headlightFlares = []; // REMOVED
 
     let engineForce = 0;
     let steeringValue = 0;
@@ -463,90 +450,12 @@
     }
     
     // =============================================================================
-    // ** 新增辅助函数：车灯相关 **
+    // ** 新增辅助函数：车灯相关 (已移除) **
     // =============================================================================
 
-    // === 新增辅助函数：创建发光纹理（避免加载外部图片） ===
-    function createFlareTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64; canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        gradient.addColorStop(0.2, 'rgba(240, 240, 255, 0.6)');
-        gradient.addColorStop(0.5, 'rgba(240, 240, 255, 0.2)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 64, 64);
-        return new THREE.CanvasTexture(canvas);
-    }
-
-    // === 新增核心函数：自动计算位置并添加车灯 ===
+    // === 新增核心函数：自动计算位置并添加车灯 (已移除) ===
     function addSmartHeadlights(carScene) {
-        // 1. 计算原始包围盒（在缩放前）
-        const box = new THREE.Box3().setFromObject(carScene);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-
-        // 2. 动态计算车灯坐标
-        const zPos = box.max.z - (size.z * 0.05); 
-        const yPos = center.y + (size.y * 0.15); 
-        const xOffset = size.x * 0.35;
-
-        const positions = [
-            { x: center.x - xOffset, y: yPos, z: zPos }, // 左灯
-            { x: center.x + xOffset, y: yPos, z: zPos }  // 右灯
-        ];
-
-        const flareTex = createFlareTexture();
-
-        // 清空旧引用
-        headlightFlares = [];
-
-        positions.forEach((pos, index) => {
-            // A. 创建聚光灯 (照亮路面)
-            const spot = new THREE.SpotLight(0xffffff, 0); // 初始亮度0
-            
-            // ************ 关键修改区域：再次大幅度收缩角度和距离及衰减 ************
-            spot.angle = Math.PI / 10;   // **保持：更聚光 (约18度)**
-            spot.penumbra = 0.3;      
-            spot.decay = 4;           // **保持：高衰减（让亮度参数更敏感）**
-            spot.distance = 150;      // **保持：大幅度收缩照射距离**
-            // ************ ************** ************
-            
-            spot.castShadow = true;
-            spot.shadow.mapSize.width = 1024;
-            spot.shadow.mapSize.height = 1024;
-            
-            // 设置灯光位置
-            spot.position.set(pos.x, pos.y, pos.z);
-            
-            // 设置目标点 (向车前方打光)
-            const target = new THREE.Object3D();
-            target.position.set(pos.x, pos.y - 0.5, pos.z + 20);
-            carScene.add(target);
-            spot.target = target;
-
-            // B. 创建光晕 (看起来像发光的灯泡)
-            const mat = new THREE.SpriteMaterial({ 
-                map: flareTex, 
-                color: 0xffffff, 
-                transparent: true, 
-                opacity: 0,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false 
-            });
-            const sprite = new THREE.Sprite(mat);
-            sprite.scale.set(0.4, 0.4, 0.4); 
-            sprite.position.set(pos.x, pos.y, pos.z + 0.02); 
-
-            carScene.add(spot);
-            carScene.add(sprite);
-            headlightFlares.push(sprite);
-
-            if (index === 0) headlightLeft = spot;
-            else headlightRight = spot;
-        });
+        // REMOVED: Headlight logic removed.
     }
 
     // =============================================================================
@@ -556,10 +465,10 @@
         gltfLoader.load('car1.glb', (gltf) => {
             carMesh = gltf.scene;
             
-            // 1. 先计算并添加车灯 (此时 scale 还是 1，计算坐标最准)
-            addSmartHeadlights(carMesh);
+            // 1. 移除车灯添加逻辑
+            // addSmartHeadlights(carMesh);
 
-            // 2. 然后再应用缩放
+            // 2. 应用缩放
             carMesh.scale.set(104.7, 104.7, 104.7);
             carMesh.rotation.y = Math.PI;
             
@@ -594,15 +503,16 @@
                     node.castShadow = true;
                     node.receiveShadow = true;
 
-                    // Remove city emissive: clone material and zero emissive (no self-illumination)
+                    // Remove city emissive / Keep the city mesh without dynamic lighting changes
                     if (node.material) {
                         const mat = node.material.clone ? node.material.clone() : node.material;
                         if (mat.emissive !== undefined) {
+                            // 保持城市材质的自发光为黑色 (移除夜间发光效果)
                             mat.emissive = new THREE.Color(0x000000);
                             mat.emissiveIntensity = 0;
                         }
                         node.material = mat;
-                        node.userData.isStandardMaterial = true;
+                        node.userData.isStandardMaterial = true; // Still use this for general material reference if needed
                     }
                 }
             });
@@ -641,7 +551,7 @@
     // =============================================================================
     function initThree() {
         scene = new THREE.Scene();
-        scene.background = daySkyColor.clone();
+        scene.background = daySkyColor.clone(); // 保持静态天空色
         scene.fog = new THREE.Fog(daySkyColor, 500, 800);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -688,9 +598,11 @@
         cameraCockpit = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
         activeCamera = cameraChase;
 
+        // 静态半球光 (白天)
         hemiLight = new THREE.HemisphereLight(dayHemiSky.clone(), dayHemiGround.clone(), 0.8);
         scene.add(hemiLight);
 
+        // 静态定向光 (白天)
         dirLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
         dirLight.position.set(50,100,50);
         dirLight.castShadow = true;
@@ -743,7 +655,7 @@
                 customSlidingRotationalSpeed: -30,
                 useCustomSlidingRotationalSpeed: true,
                 axleLocal: new CANNON.Vec3(1, 0, 0),
-                // *** 物理修改点: y (原为 0) -> -0.3 (同步降低 0.3 米以匹配 GLB) ***
+                // 物理修改点: y (原为 0) -> -0.3 (同步降低 0.3 米以匹配 GLB)
                 chassisConnectionPointLocal: new CANNON.Vec3(x, -0.3, z)
             };
         }
@@ -937,95 +849,19 @@
         }
         throttleEl.textContent = throttlePercent.toFixed(0) + '%';
 
-        updateDayNight(time); 
+        // 移除 updateDayNight(time); 逻辑
+
         // 同步金币 HUD
         coinCountEl.textContent = coinCount;
     }
 
     // =============================================================================
-    // ** 修改：日夜切换与车灯触发逻辑 **
+    // ** 移除：日夜切换与车灯触发逻辑 **
     // =============================================================================
-
-    function setHeadlights(shouldBeOn) {
-        if (!headlightLeft || !headlightRight) return;
-
-        // ******** 关键修改：将目标强度上限极度降低到 1.5 ********
-        const targetIntensity = shouldBeOn ? 1.5 : 0.0; 
-        const targetOpacity = shouldBeOn ? 1.0 : 0.0;
-
-        // 简单的线性插值 (Lerp) 实现呼吸灯/渐变效果
-        headlightLeft.intensity += (targetIntensity - headlightLeft.intensity) * 0.05;
-        headlightRight.intensity += (targetIntensity - headlightRight.intensity) * 0.05;
-
-        // 同时控制光晕的透明度
-        headlightFlares.forEach(flare => {
-            flare.material.opacity += (targetOpacity - flare.material.opacity) * 0.05;
-            flare.visible = flare.material.opacity > 0.01; 
-        });
-    }
-
-    function updateDayNight(time) {
-        const tSec = time / 1000;
-        const cycle = tSec % cycleDurationSec; 
-        const halfCycleSec = cycleDurationSec / 2; 
-
-        let t = 0;
-        let timeLabel = "DAY";
-        let isNight = false;
-        let lightsShouldBeOn = false; 
-
-        if (cycle < halfCycleSec) {
-            // === 前半段 (0% - 50%)：白天 -> 黄昏 -> 晚上 ===
-            t = cycle / halfCycleSec;
-            isNight = t > 0.5;
-            
-            // 亮灯逻辑：从 TWILIGHT (t > 0.2) 开始亮灯
-            if (t > 0.2) {
-                lightsShouldBeOn = true;
-            }
-
-            scene.background.lerpColors(daySkyColor, nightSkyColor, t);
-            scene.fog.color.copy(scene.background);
-            hemiLight.color.lerpColors(dayHemiSky, nightHemiSky, t);
-            hemiLight.groundColor.lerpColors(dayHemiGround, nightHemiGround, t);
-            dirLight.color.lerpColors(new THREE.Color(0xfff0dd), new THREE.Color(0x222233), t);
-            dirLight.intensity = 1.0 * (1 - t) + 0.2 * t;
-            hemiLight.intensity = 0.8 * (1 - t) + 0.2 * t;
-            timeLabel = (t < 0.2) ? "DAY" : (t < 0.8) ? "TWILIGHT" : "NIGHT";
-        } else {
-            // === 后半段 (50% - 100%)：晚上 -> 黎明 -> 白天 ===
-            t = (cycle - halfCycleSec) / halfCycleSec;
-            isNight = t < 0.5;
-
-            // 亮灯逻辑：一直亮到 DAY 开始前 (t < 0.8)
-            if (t < 0.8) {
-                lightsShouldBeOn = true;
-            }
-
-            scene.background.lerpColors(nightSkyColor, daySkyColor, t);
-            scene.fog.color.copy(scene.background);
-            hemiLight.color.lerpColors(nightHemiSky, dayHemiSky, t);
-            hemiLight.groundColor.lerpColors(nightHemiGround, dayHemiGround, t);
-            dirLight.color.lerpColors(new THREE.Color(0x222233), new THREE.Color(0xfff0dd), t);
-            dirLight.intensity = 0.2 * (1 - t) + 1.0 * t;
-            hemiLight.intensity = 0.2 * (1 - t) + 0.8 * t;
-            timeLabel = (t < 0.2) ? "NIGHT" : (t < 0.8) ? "DAWN" : "DAY";
-        }
-        timeEl.textContent = timeLabel;
-        
-        scene.traverse((node) => {
-            if (node.isMesh && node.userData.isStandardMaterial) {
-                const intensity = isNight ? (1 - Math.abs(t - 0.5) * 2) * 2 : 0;
-                // 城市夜间发光：确保这个值足够低，避免它本身过曝
-                node.material.emissiveIntensity = THREE.MathUtils.lerp(0.01, 0.5, intensity); 
-            }
-            if (node.isMesh && node.userData.isEmissive) {
-                node.visible = isNight;
-            }
-        });
-
-        setHeadlights(lightsShouldBeOn);
-    }
+    /*
+    function setHeadlights(shouldBeOn) { ... }
+    function updateDayNight(time) { ... }
+    */
 
     function updateColliders() {
         if (!chassisBody) return;
@@ -1163,7 +999,7 @@
         if (carMesh && chassisBody) {
             carMesh.position.copy(chassisBody.position);
             carMesh.quaternion.copy(chassisBody.quaternion);
-            // *** 核心修正：在复制物理位置后，应用静态视觉偏移 ***
+            // 核心修正：在复制物理位置后，应用静态视觉偏移
             carMesh.position.y += VISUAL_Y_OFFSET; 
         }
 
@@ -1208,9 +1044,9 @@
         initThree();
         initCannon();
         initGround();
-        initCameraAndLights();
+        initCameraAndLights(); // 现在只设置静态的白天灯光
         initLoaders();
-        loadCarModel();
+        loadCarModel(); // 不再加载车灯
         loadTireModel();
         loadCity();
         // 预加载金币原型（即使未在 city 完成也会尽快准备）
