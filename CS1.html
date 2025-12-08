@@ -20,6 +20,7 @@
         
         /* =========================================================================
          * HUD (游戏内界面)
+         * (现有样式省略...)
          * ========================================================================= */
         #hud-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -106,6 +107,7 @@
 
         /* =========================================================================
          * Splash / Main Menu UI
+         * (现有样式省略...)
          * ========================================================================= */
         #splash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -202,6 +204,50 @@
         #loading-progress-bar { width: 400px; height: 5px; background: #222; margin-top: 20px; border-radius: 2px; overflow: hidden; }
         #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
 
+        /* =========================================================================
+         * New Menu Pages (Shop, Settings, Info)
+         * ========================================================================= */
+        .menu-page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            display: none; /* Initial hidden */
+            align-items: center; justify-content: center;
+            flex-direction: column;
+            padding: 40px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+        }
+        .menu-page h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 48px; color: #FF00FF;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+        .menu-page p {
+            font-size: 20px; color: #E0FFFF; line-height: 1.6;
+            max-width: 600px; text-align: center;
+        }
+        .menu-page .detail-line {
+            font-family: 'Rajdhani', sans-serif; font-size: 22px; margin: 10px 0;
+            text-align: left; width: 100%; max-width: 400px;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+        .menu-page .detail-line strong {
+            color: #00FFFF; margin-right: 15px; font-weight: 700;
+        }
+        #menu-close-btn {
+            position: absolute; top: 40px; right: 40px;
+            background: #FF00FF; color: #000; border: none;
+            padding: 10px 20px; font-family: 'Orbitron', sans-serif;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+            clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+        }
+        #menu-close-btn:hover {
+            background: #00FFFF; box-shadow: 0 0 15px #00FFFF;
+        }
+
     </style>
 </head>
 <body>
@@ -211,6 +257,33 @@
         <p style="font-family:'Orbitron'; letter-spacing:2px;">LOADING ASSETS...</p>
         <div id="loading-progress-bar"><div id="loading-progress-fill"></div></div>
         <p id="loading-status" style="margin-top:10px; font-size:14px; font-family:'Rajdhani';">(0%)</p>
+    </div>
+
+    <div id="shop-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">BACK TO MENU</button>
+        <h2>SHOP & UPGRADES</h2>
+        <p style="color: #00FFFF; font-size: 24px;">SUBSCRIBE FOR FUTURE UPDATES :)</p>
+        <p>Unlock new cars, paint jobs, and performance upgrades in the next major patch!</p>
+    </div>
+
+    <div id="settings-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">BACK TO MENU</button>
+        <h2>GAME SETTINGS</h2>
+        <p style="color: #00FFFF; font-size: 24px;">SUBSCRIBE FOR FUTURE UPDATES :)</p>
+        <p>Configure graphics, controls, and sound options when settings are implemented.</p>
+    </div>
+
+    <div id="info-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">BACK TO MENU</button>
+        <h2>SYSTEM INFO</h2>
+        <div style="margin-top: 20px;">
+            <div class="detail-line"><strong>AUTHOR:</strong> ZHANYI ZHOU</div>
+            <div class="detail-line"><strong>GAME NAME:</strong> OPEN WORLD HYPER DRIVE</div>
+            <div class="detail-line"><strong>ENGINE:</strong> HTML5 (THREE.js + CANNON.js)</div>
+        </div>
+        <p style="margin-top: 40px; font-size: 18px; color: #00FF00;">
+            WHY CHOOSE US: <br>I USED THE MOST REALISTIC PHYSIC ENGINE: CANNON.JS AND THE OPEN WORLD IS ENOUGH BIG TO EXPLORE.
+        </p>
     </div>
 
     <div id="splash">
@@ -225,9 +298,9 @@
         </div>
 
         <div class="splash-left-menu">
-            <button class="menu-btn">SHOP</button>
-            <button class="menu-btn">SETTINGS</button>
-            <button class="menu-btn">INFO</button>
+            <button class="menu-btn" onclick="showMenuPage('shop-page')">SHOP</button>
+            <button class="menu-btn" onclick="showMenuPage('settings-page')">SETTINGS</button>
+            <button class="menu-btn" onclick="showMenuPage('info-page')">INFO</button>
         </div>
 
         <div class="splash-footer">
@@ -291,6 +364,7 @@
     <script>
     // =============================================================================
     // ** 核心变量 **
+    // (代码省略... 保持原样)
     // =============================================================================
     let scene, renderer;
     let cameraChase, cameraCockpit, activeCamera;
@@ -383,6 +457,7 @@
     
     // =============================================================================
     // ** 交互：Splash 界面拖拽旋转 **
+    // (代码省略... 保持原样)
     // =============================================================================
     document.addEventListener('mousedown', (e) => {
         if (!isGameRunning) {
@@ -408,7 +483,23 @@
     });
 
     // =============================================================================
+    // ** 新增：菜单页面显示/隐藏逻辑 **
+    // =============================================================================
+    function showMenuPage(pageId) {
+        document.getElementById('splash').style.display = 'none';
+        document.getElementById(pageId).style.display = 'flex';
+    }
+
+    function hideMenuPages() {
+        const pages = document.querySelectorAll('.menu-page');
+        pages.forEach(page => page.style.display = 'none');
+        document.getElementById('splash').style.display = 'block';
+    }
+
+
+    // =============================================================================
     // ** DELIVERY MODE 核心逻辑 **
+    // (代码省略... 保持原样)
     // =============================================================================
 
     window.startDeliveryMode = function() {
@@ -592,6 +683,7 @@
     
     // =============================================================================
     // ** THREE.js/Cannon.js 基础设置 **
+    // (代码省略... 保持原样)
     // =============================================================================
     function initThree() {
         scene = new THREE.Scene();
@@ -733,6 +825,7 @@
     
     // =============================================================================
     // ** 资源加载 **
+    // (代码省略... 保持原样)
     // =============================================================================
     function initLoaders() {
         dracoLoader = new THREE.DRACOLoader();
@@ -785,13 +878,13 @@
         });
     }
     
-    // ** 新增：加载 arrow.glb 模型 **
+    // ** 修改点 1：调整箭头尺寸 (1.5 -> 1.0) **
     function loadArrowModel() {
         gltfLoader.load('arrow.glb', (gltf) => {
             targetArrowMesh = gltf.scene;
 
-            // 调整缩放以使其在场景中可见
-            targetArrowMesh.scale.set(1.5, 1.5, 1.5); 
+            // 调整缩放以使其在场景中可见 (尺寸减小到 1.0)
+            targetArrowMesh.scale.set(1.0, 1.0, 1.0); 
             
             // 遍历模型并设置材质和阴影
             targetArrowMesh.traverse((node) => { 
@@ -834,11 +927,12 @@
         });
     }
 
+    // ** 修改点 3：缩小城市模型和碰撞激活范围 **
     function loadCity() {
         gltfLoader.load('city.glb', (gltf) => {
             const city = gltf.scene;
-            // 城市模型扩大，以配合 COIN_SPAWN_RADIUS = 1500
-            city.scale.set(6,6,6); 
+            // 城市模型缩小，以配合 COIN_SPAWN_RADIUS = 1500
+            city.scale.set(4, 4, 4); 
             city.traverse((node) => {
                 if (node.isMesh) {
                     node.castShadow = true;
@@ -875,6 +969,7 @@
                         body: body,
                         center: new THREE.Vector3().copy(geometry.boundingSphere.center),
                         radius: geometry.boundingSphere.radius,
+                        // 碰撞激活范围从 300 减小到 200
                         added: false
                     });
                 }
@@ -884,6 +979,7 @@
 
     // =============================================================================
     // ** 目标箭头更新 - 修复指向逻辑 (已更新以兼容 GLB 模型) **
+    // ** 更改：箭头往左旋转 90 度 (rotateY(Math.PI / 2)) **
     // =============================================================================
     const _tempDirectionVector = new THREE.Vector3();
     const _tempCarPosition = new THREE.Vector3();
@@ -922,7 +1018,7 @@
         _tempCarPosition.copy(chassisBody.position);
         targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
         
-        // 3. 旋转逻辑： lookAt + 180度翻转
+        // 3. 旋转逻辑： lookAt + 180度翻转 + 额外旋转
         const lookAtTarget = new THREE.Vector3(targetPos.x, targetArrowMesh.position.y, targetPos.z);
         
         // 重置旋转 (关键步骤，防止 GLB 模型出现多余的旋转)
@@ -931,11 +1027,14 @@
         // lookAt() 会让物体的 -Z 轴指向目标。
         targetArrowMesh.lookAt(lookAtTarget); 
 
-        // 假设 arrow.glb 模型的尖端朝向是 +Z 轴（GLTF 常见约定）。
-        // 1. lookAt 使得 -Z 轴指向目标 (即箭头的尾部指向目标)。
-        // 2. 绕 Y 轴旋转 180 度，将 +Z 轴指向目标 (即箭头尖端指向目标)。
-        // 如果 arrow.glb 的尖端是 Y 轴或其他轴，则需要在这里调整 rotateX/rotateZ。
+        // 1. 绕 Y 轴旋转 180 度 (将 +Z 轴指向目标)
         targetArrowMesh.rotateY(Math.PI); 
+        
+        // 2. 新增：绕 Y 轴额外旋转 +90 度 (左转 90 度，原为 -90 度)
+        targetArrowMesh.rotateY(Math.PI / 2); 
+        
+        // 3. 绕 X 轴旋转 45 度 (向前下方倾斜)
+        targetArrowMesh.rotateX(Math.PI / 4); 
         
         // 4. 稍微抬高箭头，增加视觉效果
         targetArrowMesh.position.y += 0.5;
@@ -943,6 +1042,7 @@
 
     // =============================================================================
     // ** 控制与更新 **
+    // (代码省略... 保持原样)
     // =============================================================================
     window.addEventListener('keydown', (event) => {
         if (!isGameRunning) return;
@@ -1081,11 +1181,11 @@
         const chassisPos = new THREE.Vector3(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z);
         staticBodies.forEach(obj => {
             const d = chassisPos.distanceTo(obj.center);
-            // 增加激活范围以配合更大的城市
-            if (!obj.added && d <= obj.radius + 300) { 
+            // 减小激活范围以配合更小的城市模型
+            if (!obj.added && d <= obj.radius + 200) { 
                 world.addBody(obj.body);
                 obj.added = true;
-            } else if (obj.added && d > obj.radius + 300) {
+            } else if (obj.added && d > obj.radius + 200) {
                 world.removeBody(obj.body);
                 obj.added = false;
             }
@@ -1164,6 +1264,7 @@
 
     // =============================================================================
     // ** 主循环 **
+    // (代码省略... 保持原样)
     // =============================================================================
     function animate(time) {
         requestAnimationFrame(animate);
@@ -1222,6 +1323,7 @@
 
     // =============================================================================
     // ** 启动逻辑 **
+    // (代码省略... 保持原样)
     // =============================================================================
     
     function initSystem() {
