@@ -1509,7 +1509,8 @@
     // =============================================================================
     function animate(time) {
         requestAnimationFrame(animate);
-        if (!chassisBody || !world) return;
+        // FIX: 确保 chassisBody, world 和 vehicle 都已初始化，以避免 TypeError: Cannot read properties of undefined (reading 'wheelInfos')
+        if (!chassisBody || !world || !vehicle) return; 
         
         if (isGameRunning) {
             const fixedTimeStep = 1/60;
@@ -1553,18 +1554,18 @@
         }
 
         // ** NEW: AI Car Model position synchronization **
-        if (aiCarMesh && aiChassisBody) {
+        if (aiCarMesh && aiChassisBody && aiVehicle) { // Added check for aiVehicle for safety
             aiCarMesh.position.copy(aiChassisBody.position);
             aiCarMesh.quaternion.copy(aiChassisBody.quaternion);
             aiCarMesh.position.y += VISUAL_Y_OFFSET; 
-        }
         
-        for (let i = 0; i < aiVehicle.wheelInfos.length; i++) {
-            aiVehicle.updateWheelTransform(i);
-            const t = aiVehicle.wheelInfos[i].worldTransform;
-            if (aiWheelMeshes[i]) {
-                aiWheelMeshes[i].position.copy(t.position);
-                aiWheelMeshes[i].quaternion.copy(t.quaternion);
+            for (let i = 0; i < aiVehicle.wheelInfos.length; i++) {
+                aiVehicle.updateWheelTransform(i);
+                const t = aiVehicle.wheelInfos[i].worldTransform;
+                if (aiWheelMeshes[i]) {
+                    aiWheelMeshes[i].position.copy(t.position);
+                    aiWheelMeshes[i].quaternion.copy(t.quaternion);
+                }
             }
         }
         // ** END NEW **
@@ -1602,7 +1603,7 @@
         loadCity();
         loadCoinPrototype();
         loadArrowModel(); 
-        // ** NEW: Load AI Car Model **
+        // ** NEW: Load AI Car Model (which calls initAIVehicle) **
         loadAICarModel(); 
     }
 
