@@ -530,7 +530,7 @@
     window.startDeliveryMode = function() {
         if (!chassisBody) {
             // UX: Translated alert message
-            alert("请等待资源加载完毕或先进入游戏。"); 
+            alert("Please wait for assets to load or enter the game first."); 
             return;
         }
 
@@ -548,7 +548,7 @@
     function generateNewMission() {
         if (DELIVERY_POINTS.length < 2) {
             // UX: Translated status text
-            missionStatusEl.textContent = '任务错误：任务点不足（至少需要2个）。';
+            missionStatusEl.textContent = 'MISSION ERROR: Not enough mission points (Need at least 2).';
             return;
         }
 
@@ -607,7 +607,7 @@
         };
 
         // UX: Translated mission status template
-        missionStatusEl.textContent = `任务：前往 ${pickupData.name} 取货`;
+        missionStatusEl.textContent = `MISSION: Go to ${pickupData.name} for Pickup`;
         missionStatusEl.style.color = '#00FFFF';
 
         // 6. Add collision listener
@@ -631,7 +631,7 @@
             // Mission Stage 1: Pickup Complete
             currentMission.status = 'delivering';
             // UX: Translated mission status template
-            missionStatusEl.textContent = `任务：将货物运送到 ${currentMission.deliveryName}`;
+            missionStatusEl.textContent = `MISSION: Deliver cargo to ${currentMission.deliveryName}`;
             missionStatusEl.style.color = '#00FF00';
             
             currentMission.pickupMesh.visible = false;
@@ -658,7 +658,7 @@
             coinCountEl.textContent = coinCount;
 
             // UX: Translated success message
-            missionStatusEl.textContent = `任务成功！ (+${reward} GOLD)`;
+            missionStatusEl.textContent = `MISSION SUCCESS! (+${reward} GOLD)`;
             missionStatusEl.style.color = '#FFD700';
             
             if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
@@ -669,7 +669,7 @@
 
         } else {
             // UX: Translated failure message
-            missionStatusEl.textContent = '任务失败！时间耗尽。';
+            missionStatusEl.textContent = 'MISSION FAILED! Time Expired.';
             missionStatusEl.style.color = '#FF0000';
             setTimeout(generateNewMission, 3000); // UX: Shorter delay after failure
         }
@@ -791,14 +791,6 @@
         });
         chassisBody.angularDamping = 0.9; 
         chassisBody.linearDamping = 0.05;
-
-        // ** ✅ 解决方案 C：增加抗穿模（Anti-Tunneling）的虚拟底板碰撞体 **
-        // 增加一个更宽、更扁的Box形状，并将其向下偏移，
-        // 作为一个厚实的“底板”来防止高速穿模。
-        const antiPenShape = new CANNON.Box(new CANNON.Vec3(1.2, 0.1, 2.2));
-        chassisBody.addShape(antiPenShape, new CANNON.Vec3(0, -0.6, 0));
-        // *******************************************************************
-        
         world.addBody(chassisBody);
 
         vehicle = new CANNON.RaycastVehicle({
