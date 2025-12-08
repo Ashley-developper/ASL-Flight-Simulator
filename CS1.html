@@ -496,11 +496,11 @@
     }
 
     function createTargetMesh(color) {
-        const geometry = new THREE.ConeGeometry(TARGET_RADIUS / 2, TARGET_RADIUS * 2, 8);
+        // 使用一个简单的圆柱体作为任务点的标识，避免和箭头混淆
+        const geometry = new THREE.CylinderGeometry(TARGET_RADIUS / 2, TARGET_RADIUS / 2, TARGET_RADIUS, 16);
         const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.7 });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.rotation.x = Math.PI; 
-        mesh.position.y += TARGET_RADIUS / 2; 
+        mesh.position.y += TARGET_RADIUS / 2; // 抬升到地面以上
         return mesh;
     }
 
@@ -599,7 +599,7 @@
         scene.fog = new THREE.Fog(daySkyColor, 500, 800);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        // ** MODIFIED: 直接使用原生像素比例，移除所有性能调整逻辑 **
+        // ** 维持最高画质，使用原生像素比例 **
         renderer.setPixelRatio(window.devicePixelRatio); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
@@ -781,13 +781,13 @@
             flameMesh.visible = false;
             carMesh.add(flameMesh);
 
-            // ** MODIFIED: 目标指示箭头模型 (Attach to Scene for easier world-space sizing) **
+            // ** 目标指示箭头模型 (ConeGeometry 默认 Y 轴是高度/尖端方向) **
             const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); // 设置为清晰可见的尺寸 (半径 0.4m, 高度 2.0m)
             const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
             targetArrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
             
             targetArrowMesh.visible = false; // 初始隐藏
-            scene.add(targetArrowMesh); // ** MODIFIED: 添加到场景根节点 **
+            scene.add(targetArrowMesh); 
         });
     }
 
@@ -849,7 +849,7 @@
     }
 
     // =============================================================================
-    // ** 目标箭头更新 **
+    // ** 目标箭头更新 - 修复指向逻辑 **
     // =============================================================================
     const _tempDirectionVector = new THREE.Vector3();
     const _tempCarPosition = new THREE.Vector3();
@@ -863,33 +863,38 @@
         // 1. 确定目标位置和颜色
         let targetPos = null;
         if (currentMission.status === 'pickup' && currentMission.pickupMesh) {
-            targetPos = currentMission.pickupMesh.position;
+            targetPos = currentMission.pickupPoint.position; // 使用物理体的位置更精确
             targetArrowMesh.material.color.setHex(0x00FFFF); // Pick Up: 青色
         } else if (currentMission.status === 'delivering' && currentMission.deliveryMesh) {
-            targetPos = currentMission.deliveryMesh.position;
+            targetPos = currentMission.deliveryTarget.position; // 使用物理体的位置更精确
             targetArrowMesh.material.color.setHex(0x00FF00); // Delivering: 绿色
         } else {
             targetArrowMesh.visible = false;
             return;
         }
-
+        
         targetArrowMesh.visible = true;
 
-        // 2. MODIFIED: 更新箭头在世界空间中的位置
+        // 2. 更新箭头在世界空间中的位置
         _tempCarPosition.copy(chassisBody.position);
         // 将箭头放置在车体上方 2.5m 处
         targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
         
-        // 3. 计算方向向量 (从车到目标)
-        _tempDirectionVector.copy(targetPos).sub(_tempCarPosition);
-        _tempDirectionVector.y = 0; // 忽略 Y 轴高度差，只考虑平面方向
-
-        // 4. 计算世界 Y 轴旋转角度 (使用世界坐标系)
-        // 箭头模型是 cone，默认 Y 轴是高度，需要 Math.PI/2 的 X 轴旋转才能使箭头尖端水平
-        const angle = Math.atan2(_tempDirectionVector.x, _tempDirectionVector.z);
+        // 3. MODIFIED: 使用 lookAt 来确保指向目标 (这是解决指向问题的关键)
+        const lookAtTarget = new THREE.Vector3(targetPos.x, targetArrowMesh.position.y, targetPos.z);
         
-        // 5. 更新箭头的世界旋转
-        targetArrowMesh.rotation.set(Math.PI/2, angle, 0); 
+        // lookAt() 会让物体的-Z轴指向目标。
+        targetArrowMesh.lookAt(lookAtTarget); 
+
+        // 4. MODIFIED: 调整倾斜度，使 ConeGeometry 的尖端 (Y轴) 指向目标 (当前 -Z方向)
+        // ConeGeometry 默认 Y 轴是高度/尖端方向。
+        // lookAt 使得物体的 -Z 轴指向 lookAtTarget。
+        // 我们需要将 Cone 的 +Y 轴（尖端）旋转到与新的 -Z 轴对齐。
+        // 绕着 X 轴旋转 -Math.PI / 2 (-90度)。
+        targetArrowMesh.rotateX(-Math.PI / 2); 
+        
+        // 5. 稍微抬高箭头，增加视觉效果
+        targetArrowMesh.position.y += 0.5; // 稍微抬高一点，使其更明显
     }
 
     // =============================================================================
