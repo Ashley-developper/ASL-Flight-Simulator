@@ -312,14 +312,14 @@
     const maxSteerVal = 0.7;
     const VISUAL_Y_OFFSET = -0.9; 
 
-    // ** 用户要求设置的车辆初始位置：设置为 90, 0.7, 0 **
+    // ** 车辆初始位置 **
     const initialCarPosition = new CANNON.Vec3(90, 0.7, 0);
 
     let staticBodies = [];
     let carMesh = null;
     let tireMeshPrototype = null;
     let flameMesh = null;
-    let targetArrowMesh = null; // ** NEW: 目标指示箭头模型 **
+    let targetArrowMesh = null; // ** 目标指示箭头模型 **
     let gltfLoader = null;
     let dracoLoader = null;
 
@@ -351,18 +351,17 @@
     let coinCount = 0;
     const COIN_MIN = 50;
     const COIN_MAX = 80;
-    const COIN_SPAWN_RADIUS = 1500; // ** MODIFIED: 增大到 1500 以拉远任务和金币分布距离 **
+    const COIN_SPAWN_RADIUS = 1500; // 增大到 1500 以拉远任务和金币分布距离
     const COIN_HEIGHT = 0.7;
 
     // ** Predefined Delivery Points **
-    // ** MODIFIED: 替换 High-Rise Rooftop 为 City Museum **
     const DELIVERY_POINTS = [
         { name: "Central Plaza", x: 90, y: 1.0, z: 0 },
         { name: "West Dock", x: -500, y: 1.0, z: 300 },
         { name: "North Bridge Entrance", x: 100, y: 1.0, z: -400 },
         { name: "Industrial Zone", x: -300, y: 1.0, z: -200 },
         { name: "Airport Gate", x: 450, y: 1.0, z: 250 },
-        { name: "City Museum", x: 250, y: 1.0, z: -150 }, // NEW
+        { name: "City Museum", x: 250, y: 1.0, z: -150 }, // 替换了 High-Rise Rooftop
         { name: "Southern Freeway", x: 0, y: 3.0, z: 500 }, 
     ];
 
@@ -382,20 +381,6 @@
         deliveryName: '',
     };
     
-    // =============================================================================
-    // ** NEW: 性能调优变量 **
-    // =============================================================================
-    let frameCount = 0;
-    let lastPerfCheckTime = 0;
-    const PERF_CHECK_INTERVAL = 2000; // 检查间隔 (毫秒)
-    const TARGET_FPS_MIN = 55; // 目标最低帧率
-    const TARGET_FPS_MAX = 60; // 目标最高帧率
-    const MIN_PIXEL_RATIO = 0.6; // 最小渲染质量
-    const MAX_PIXEL_RATIO = window.devicePixelRatio; // 最大渲染质量 (原生分辨率)
-    const QUALITY_WARN_THRESHOLD = MIN_PIXEL_RATIO + 0.05; // 0.65
-    let currentPixelRatio = MAX_PIXEL_RATIO; // 初始设置为最高
-    let qualityWarningShown = false; // 警告是否已显示
-
     // =============================================================================
     // ** 交互：Splash 界面拖拽旋转 **
     // =============================================================================
@@ -556,7 +541,8 @@
             missionStatusEl.textContent = `任务成功！ (+${reward} GOLD)`;
             missionStatusEl.style.color = '#FFD700';
             
-            if (currentMission.deliveryMesh) currentMission.deliveryMesh.visible = false;
+            if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
+            if (currentMission.pickupMesh) scene.remove(currentMission.pickupMesh);
             
             setTimeout(generateNewMission, 5000); 
 
@@ -567,8 +553,8 @@
         }
         
         // 清理目标物理体
-        world.removeBody(currentMission.pickupPoint);
-        world.removeBody(currentMission.deliveryTarget);
+        if (currentMission.pickupPoint) world.removeBody(currentMission.pickupPoint);
+        if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
         currentMission.status = 'completed';
     }
 
@@ -605,45 +591,6 @@
     }
     
     // =============================================================================
-    // ** NEW: 性能检测与调整函数 **
-    // =============================================================================
-    function checkPerformanceAndAdjustQuality(actualFPS) {
-        // 阈值检查
-        let changed = false;
-
-        // 1. 如果 FPS 过低，降低画质
-        if (actualFPS < TARGET_FPS_MIN) {
-            const newRatio = Math.max(MIN_PIXEL_RATIO, currentPixelRatio - 0.1);
-            if (newRatio !== currentPixelRatio) {
-                currentPixelRatio = newRatio;
-                changed = true;
-            }
-        } 
-        // 2. 如果 FPS 良好且画质未到最大，提高画质
-        else if (actualFPS > TARGET_FPS_MAX && currentPixelRatio < MAX_PIXEL_RATIO) {
-            const newRatio = Math.min(MAX_PIXEL_RATIO, currentPixelRatio + 0.05);
-            if (newRatio !== currentPixelRatio) {
-                currentPixelRatio = newRatio;
-                changed = true;
-            }
-        }
-        
-        if (changed) {
-            renderer.setPixelRatio(currentPixelRatio);
-            
-            // ** 新增：画质消减提示逻辑 **
-            if (currentPixelRatio <= QUALITY_WARN_THRESHOLD && !qualityWarningShown) {
-                alert("⚠️ Performance Warning: Graphics quality has been reduced to maintain smooth FPS. Check your device load or settings.");
-                qualityWarningShown = true;
-            } else if (currentPixelRatio > QUALITY_WARN_THRESHOLD) {
-                // 当画质恢复到安全阈值之上时，重置警告标志
-                qualityWarningShown = false; 
-            }
-        }
-    }
-
-
-    // =============================================================================
     // ** THREE.js/Cannon.js 基础设置 **
     // =============================================================================
     function initThree() {
@@ -652,8 +599,8 @@
         scene.fog = new THREE.Fog(daySkyColor, 500, 800);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        // NEW: 初始使用当前设置的像素比例
-        renderer.setPixelRatio(currentPixelRatio); 
+        // ** MODIFIED: 直接使用原生像素比例，移除所有性能调整逻辑 **
+        renderer.setPixelRatio(window.devicePixelRatio); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -773,7 +720,7 @@
 
     function respawnCar() {
         if (!chassisBody) return;
-        chassisBody.position.copy(initialCarPosition); // 使用新的 Y=0.7 初始位置
+        chassisBody.position.copy(initialCarPosition); 
         chassisBody.quaternion.set(0, 0, 0, 1);
         chassisBody.velocity.set(0, 0, 0);
         chassisBody.angularVelocity.set(0, 0, 0);
@@ -811,7 +758,6 @@
 
             initVehicle();
             spawnCoinsWhenReady();
-            lastPerfCheckTime = performance.now(); // NEW: 初始化性能检查时间
             requestAnimationFrame(animate);
         };
 
@@ -835,15 +781,13 @@
             flameMesh.visible = false;
             carMesh.add(flameMesh);
 
-            // ** NEW: 目标指示箭头模型 **
-            const arrowGeometry = new THREE.ConeGeometry(0.3, 1.5, 3);
+            // ** MODIFIED: 目标指示箭头模型 (Attach to Scene for easier world-space sizing) **
+            const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); // 设置为清晰可见的尺寸 (半径 0.4m, 高度 2.0m)
             const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
             targetArrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
             
-            targetArrowMesh.position.set(0, 2.0, 0); // 放置在车体上方
-            targetArrowMesh.rotation.x = Math.PI / 2; // 使其尖端朝前（局部Z轴）
             targetArrowMesh.visible = false; // 初始隐藏
-            carMesh.add(targetArrowMesh);
+            scene.add(targetArrowMesh); // ** MODIFIED: 添加到场景根节点 **
         });
     }
 
@@ -909,7 +853,6 @@
     // =============================================================================
     const _tempDirectionVector = new THREE.Vector3();
     const _tempCarPosition = new THREE.Vector3();
-    const _tempCarQuaternionInverse = new THREE.Quaternion();
 
     function updateTargetArrow() {
         if (!targetArrowMesh || !isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') {
@@ -931,22 +874,22 @@
         }
 
         targetArrowMesh.visible = true;
-        
-        // 2. 计算方向向量 (从车到目标)
+
+        // 2. MODIFIED: 更新箭头在世界空间中的位置
         _tempCarPosition.copy(chassisBody.position);
+        // 将箭头放置在车体上方 2.5m 处
+        targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
+        
+        // 3. 计算方向向量 (从车到目标)
         _tempDirectionVector.copy(targetPos).sub(_tempCarPosition);
         _tempDirectionVector.y = 0; // 忽略 Y 轴高度差，只考虑平面方向
-        
-        // 3. 将方向向量转换为车辆局部坐标系
-        _tempCarQuaternionInverse.copy(chassisBody.quaternion).invert();
-        _tempDirectionVector.applyQuaternion(_tempCarQuaternionInverse);
 
-        // 4. 计算箭头模型需要旋转的角度
-        // 箭头模型初始Z轴朝上 (rotation.x = PI/2 后)
+        // 4. 计算世界 Y 轴旋转角度 (使用世界坐标系)
+        // 箭头模型是 cone，默认 Y 轴是高度，需要 Math.PI/2 的 X 轴旋转才能使箭头尖端水平
         const angle = Math.atan2(_tempDirectionVector.x, _tempDirectionVector.z);
         
-        // 5. 更新箭头的局部旋转 (只绕 Y 轴)
-        targetArrowMesh.rotation.y = angle; 
+        // 5. 更新箭头的世界旋转
+        targetArrowMesh.rotation.set(Math.PI/2, angle, 0); 
     }
 
     // =============================================================================
@@ -1189,20 +1132,11 @@
             }
             lastTime = time;
             
-            // NEW: 性能检测逻辑
-            frameCount++;
-            if (time - lastPerfCheckTime > PERF_CHECK_INTERVAL) {
-                const actualFPS = frameCount / ((time - lastPerfCheckTime) / 1000);
-                checkPerformanceAndAdjustQuality(actualFPS);
-                frameCount = 0;
-                lastPerfCheckTime = time;
-            }
-
             updateControls();
             updateColliders();
             if (isDeliveryModeActive) {
                 updateDeliveryMode(); 
-                updateTargetArrow(); // ** NEW: 目标箭头更新 **
+                updateTargetArrow(); 
             } else if (targetArrowMesh) {
                 targetArrowMesh.visible = false;
             }
