@@ -361,7 +361,7 @@
         { name: "North Bridge Entrance", x: 100, y: 1.0, z: -400 },
         { name: "Industrial Zone", x: -300, y: 1.0, z: -200 },
         { name: "Airport Gate", x: 450, y: 1.0, z: 250 },
-        { name: "City Museum", x: 250, y: 1.0, z: -150 }, // 替换了 High-Rise Rooftop
+        { name: "City Museum", x: 250, y: 1.0, z: -150 }, 
         { name: "Southern Freeway", x: 0, y: 3.0, z: 500 }, 
     ];
 
@@ -781,13 +781,47 @@
             flameMesh.visible = false;
             carMesh.add(flameMesh);
 
-            // ** 目标指示箭头模型 (ConeGeometry 默认 Y 轴是高度/尖端方向) **
-            const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); // 设置为清晰可见的尺寸 (半径 0.4m, 高度 2.0m)
-            const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
-            targetArrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            // 原始的 ConeGeometry 箭头模型代码已移除，现在由 loadArrowModel 负责加载 arrow.glb
+        });
+    }
+    
+    // ** 新增：加载 arrow.glb 模型 **
+    function loadArrowModel() {
+        gltfLoader.load('arrow.glb', (gltf) => {
+            targetArrowMesh = gltf.scene;
+
+            // 调整缩放以使其在场景中可见
+            targetArrowMesh.scale.set(1.5, 1.5, 1.5); 
             
+            // 遍历模型并设置材质和阴影
+            targetArrowMesh.traverse((node) => { 
+                if (node.isMesh) {
+                    node.castShadow = true; 
+                    // 使用 MeshBasicMaterial 以确保箭头颜色不受光照影响而保持高亮
+                    // 初始颜色设为红色（备用/默认）
+                    node.material = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8, depthTest: false });
+                } 
+            });
+
             targetArrowMesh.visible = false; // 初始隐藏
-            scene.add(targetArrowMesh); 
+            scene.add(targetArrowMesh);
+            
+            // 缓存任务颜色，用于 updateTargetArrow 中快速切换
+            targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF);  // 青色
+            targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00); // 绿色
+
+        }, undefined, (error) => {
+            console.error('Failed to load arrow.glb:', error);
+            // 兜底：如果 arrow.glb 加载失败，使用回 ConeGeometry
+            if (!targetArrowMesh) {
+                const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); 
+                const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
+                targetArrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                targetArrowMesh.visible = false;
+                scene.add(targetArrowMesh);
+                targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF);
+                targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00);
+            }
         });
     }
 
@@ -849,7 +883,7 @@
     }
 
     // =============================================================================
-    // ** 目标箭头更新 - 修复指向逻辑 **
+    // ** 目标箭头更新 - 修复指向逻辑 (已更新以兼容 GLB 模型) **
     // =============================================================================
     const _tempDirectionVector = new THREE.Vector3();
     const _tempCarPosition = new THREE.Vector3();
@@ -860,14 +894,16 @@
             return;
         }
 
-        // 1. 确定目标位置和颜色
         let targetPos = null;
-        if (currentMission.status === 'pickup' && currentMission.pickupMesh) {
-            targetPos = currentMission.pickupPoint.position; // 使用物理体的位置更精确
-            targetArrowMesh.material.color.setHex(0x00FFFF); // Pick Up: 青色
-        } else if (currentMission.status === 'delivering' && currentMission.deliveryMesh) {
-            targetPos = currentMission.deliveryTarget.position; // 使用物理体的位置更精确
-            targetArrowMesh.material.color.setHex(0x00FF00); // Delivering: 绿色
+        let targetColor = null;
+
+        // 1. 确定目标位置和颜色
+        if (currentMission.status === 'pickup') {
+            targetPos = currentMission.pickupPoint.position; 
+            targetColor = targetArrowMesh.userData.pickupColor;
+        } else if (currentMission.status === 'delivering') {
+            targetPos = currentMission.deliveryTarget.position; 
+            targetColor = targetArrowMesh.userData.deliveryColor;
         } else {
             targetArrowMesh.visible = false;
             return;
@@ -875,26 +911,34 @@
         
         targetArrowMesh.visible = true;
 
+        // 颜色更新
+        targetArrowMesh.traverse((node) => {
+            if (node.isMesh && node.material.color) {
+                node.material.color.copy(targetColor);
+            }
+        });
+
         // 2. 更新箭头在世界空间中的位置
         _tempCarPosition.copy(chassisBody.position);
-        // 将箭头放置在车体上方 2.5m 处
         targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
         
-        // 3. MODIFIED: 使用 lookAt 来确保指向目标 (这是解决指向问题的关键)
+        // 3. 旋转逻辑： lookAt + 180度翻转
         const lookAtTarget = new THREE.Vector3(targetPos.x, targetArrowMesh.position.y, targetPos.z);
         
-        // lookAt() 会让物体的-Z轴指向目标。
+        // 重置旋转 (关键步骤，防止 GLB 模型出现多余的旋转)
+        targetArrowMesh.rotation.set(0, 0, 0); 
+        
+        // lookAt() 会让物体的 -Z 轴指向目标。
         targetArrowMesh.lookAt(lookAtTarget); 
 
-        // 4. MODIFIED: 调整倾斜度，使 ConeGeometry 的尖端 (Y轴) 指向目标 (当前 -Z方向)
-        // ConeGeometry 默认 Y 轴是高度/尖端方向。
-        // lookAt 使得物体的 -Z 轴指向 lookAtTarget。
-        // 我们需要将 Cone 的 +Y 轴（尖端）旋转到与新的 -Z 轴对齐。
-        // 绕着 X 轴旋转 -Math.PI / 2 (-90度)。
-        targetArrowMesh.rotateX(-Math.PI / 2); 
+        // 假设 arrow.glb 模型的尖端朝向是 +Z 轴（GLTF 常见约定）。
+        // 1. lookAt 使得 -Z 轴指向目标 (即箭头的尾部指向目标)。
+        // 2. 绕 Y 轴旋转 180 度，将 +Z 轴指向目标 (即箭头尖端指向目标)。
+        // 如果 arrow.glb 的尖端是 Y 轴或其他轴，则需要在这里调整 rotateX/rotateZ。
+        targetArrowMesh.rotateY(Math.PI); 
         
-        // 5. 稍微抬高箭头，增加视觉效果
-        targetArrowMesh.position.y += 0.5; // 稍微抬高一点，使其更明显
+        // 4. 稍微抬高箭头，增加视觉效果
+        targetArrowMesh.position.y += 0.5;
     }
 
     // =============================================================================
@@ -1194,6 +1238,7 @@
         loadTireModel();
         loadCity();
         loadCoinPrototype();
+        loadArrowModel(); // <-- 新增：加载 arrow.glb
     }
 
     window.enterGame = function() { 
