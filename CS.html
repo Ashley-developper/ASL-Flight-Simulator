@@ -718,8 +718,8 @@
         scene.fog = new THREE.Fog(daySkyColor, 500, 800);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        // Maintain highest visual quality, use native pixel ratio
-        renderer.setPixelRatio(window.devicePixelRatio); 
+        // ** MODIFICATION 1: Reduce Pixel Ratio by half **
+        renderer.setPixelRatio(window.devicePixelRatio / 2); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -767,8 +767,9 @@
         dirLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
         dirLight.position.set(50,100,50);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 4096;
-        dirLight.shadow.mapSize.height = 4096;
+        // ** MODIFICATION 2: Reduce Shadow Map Size by half **
+        dirLight.shadow.mapSize.width = 2048; 
+        dirLight.shadow.mapSize.height = 2048;
         dirLight.shadow.camera.near = 0.5;
         dirLight.shadow.camera.far = 1000; // Increase shadow distance
         dirLight.shadow.camera.left = -200;
