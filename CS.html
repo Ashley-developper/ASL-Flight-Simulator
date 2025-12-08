@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,254 @@
     <title>ASL Car Simulator - Hyper Drive Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ... (CSS 样式部分与之前相同) ... */
+        /* =========================================================================
+         * UI BASE & TYPOGRAPHY
+         * ========================================================================= */
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000000; 
+            font-family: 'Rajdhani', sans-serif; 
+            color: #E0FFFF;
+            user-select: none; 
+        }
+        
+        /* =========================================================================
+         * HUD (IN-GAME INTERFACE)
+         * ========================================================================= */
+        #hud-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+            padding: 30px; box-sizing: border-box; z-index: 10;
+        }
+
+        .hud-top-left { display: flex; gap: 20px; flex-wrap: wrap; }
+        .hud-top-right { position: absolute; top: 30px; right: 30px; }
+        
+        .instrument {
+            background: rgba(0, 15, 30, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-left: 5px solid #00FFFF;
+            backdrop-filter: blur(10px);
+            padding: 12px 22px;
+            min-width: 120px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+            border-radius: 4px;
+            /* Improved clipping for a sci-fi look */
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 100%, 0 100%);
+        }
+        
+        .label {
+            font-family: 'Orbitron', sans-serif; font-size: 10px; color: #00FFFF; 
+            font-weight: 700; letter-spacing: 2px; margin-bottom: 3px; display:block; 
+            text-transform: uppercase; text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+        }
+        .value {
+            font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900; 
+            letter-spacing: -2px; line-height: 1; color: #FFFFFF;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        .unit { font-size: 14px; color: #888888; margin-left: 6px; font-weight: 400; }
+
+        .spd-color { border-left-color: #00FFFF !important; }
+        .rpm-color { border-left-color: #FF00FF !important; }
+        .gear-color { border-left-color: #FFD700 !important; }
+        .throttle-color { border-left-color: #00FF00 !important; }
+
+        #hud-coin {
+            background: rgba(35, 18, 0, 0.7);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-left: 5px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.06);
+            min-width: 140px; margin-bottom: 20px;
+        }
+        #hud-coin .label { color: #FFD700; }
+        #coin-count { font-size: 40px; letter-spacing: 2px; color: #FFD700; }
+
+        /* ** Delivery HUD Style ** */
+        #delivery-hud {
+            position: absolute; top: 180px; left: 30px;
+            background: rgba(0, 30, 0, 0.7);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            border-left: 5px solid #00FF00;
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+            border-radius: 4px;
+            min-width: 250px;
+            display: none; /* Initial hidden */
+        }
+        #delivery-hud .mission-title { 
+            font-family: 'Orbitron', sans-serif; font-size: 14px; color: #00FF00; 
+            margin-bottom: 8px; font-weight: 700; border-bottom: 1px dashed rgba(0, 255, 0, 0.3);
+            padding-bottom: 5px;
+        }
+        #delivery-hud .mission-detail { font-size: 16px; color: #E0FFE0; margin-bottom: 5px; }
+        #delivery-distance-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFFFFF; }
+        #delivery-timer-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFD700; }
+
+        #control-hints {
+            position: absolute; bottom: 30px; left: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 5px solid #00FF00;
+            backdrop-filter: blur(10px); padding: 18px 25px;
+            color: #eee; font-size: 13px; border-radius: 4px;
+            max-width: 250px; line-height: 1.8;
+        }
+        .respawn-hint { color: #FFD700; font-weight: bold; }
+        .hint-title { color: #00FF00; font-family: 'Orbitron', sans-serif; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(0, 255, 0, 0.3); padding-bottom: 5px; }
+        .copyright-tag { position: fixed; bottom: 15px; right: 15px; font-size: 12px; color: rgba(255, 255, 255, 0.3); z-index: 10; }
+
+        /* =========================================================================
+         * SPLASH / MAIN MENU UI
+         * ========================================================================= */
+        #splash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.8) 100%);
+            z-index: 999;
+            display: none; /* Initial hidden */
+            cursor: grab;
+            transition: opacity 0.5s; /* UX: Smooth transition when fading out */
+        }
+        #splash:active { cursor: grabbing; }
+
+        /* Title Area */
+        .splash-header {
+            position: absolute; top: 60px; left: 0; width: 100%;
+            text-align: center; pointer-events: none;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 64px; margin: 0; font-weight: 900;
+            letter-spacing: 12px; text-transform: uppercase;
+            background: linear-gradient(to right, #00FFFF, #FFFFFF, #FF00FF);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            /* UX: More vibrant shadow */
+            text-shadow: 0 0 35px rgba(0, 255, 255, 0.7), 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        .splash-subtitle {
+            font-family: 'Rajdhani', sans-serif; font-size: 20px; color: rgba(0, 255, 255, 0.8);
+            letter-spacing: 6px; margin-top: 10px; font-weight: 600;
+        }
+
+        /* Top Right Coin Display */
+        .splash-top-right {
+            position: absolute; top: 40px; right: 40px;
+            text-align: right; pointer-events: none;
+        }
+        .splash-top-right .label { font-size: 12px; color: #FFD700; text-shadow: 0 0 10px #FFD700; margin-bottom: 5px;}
+        .splash-top-right .value { font-size: 42px; color: #FFD700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+
+        /* Left Menu Buttons (SHOP, SETTINGS, INFO) */
+        .splash-left-menu {
+            position: absolute; top: 50%; left: 40px;
+            transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .menu-btn {
+            font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700;
+            color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2); border-left: 3px solid #888;
+            padding: 12px 30px; letter-spacing: 3px; cursor: pointer;
+            transition: 0.3s; width: 200px; text-align: left;
+            clip-path: polygon(0 0, 100% 0, 95% 100%, 0 100%);
+        }
+        .menu-btn:hover {
+            background: rgba(0, 255, 255, 0.2); color: #fff;
+            border-left-color: #00FFFF; padding-left: 40px;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3);
+        }
+
+        /* Bottom Button Area */
+        .splash-footer {
+            position: absolute; bottom: 60px; right: 60px;
+            display: flex; gap: 20px; align-items: flex-end;
+            pointer-events: none; /* Container penetration */
+        }
+        
+        /* Universal Footer Button Style */
+        .splash-footer button { pointer-events: auto; font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s; }
+
+        #start-button {
+            padding: 20px 80px; font-size: 24px; font-weight: 900;
+            color: #000000; background: #00FFFF; border: none;
+            letter-spacing: 4px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+            /* UX: More aggressive clip-path for a sharper look */
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+        }
+        #start-button:hover {
+            background: #FF00FF; box-shadow: 0 0 50px rgba(255, 0, 255, 0.8); color: #fff; transform: scale(1.05);
+        }
+
+        /* Delivery Button */
+        #delivery-mode-btn { 
+            padding: 15px 40px; font-size: 16px; font-weight: 700;
+            color: #00FFFF; background: rgba(0, 20, 40, 0.8);
+            border: 1px solid #00FFFF; letter-spacing: 2px;
+            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 20%);
+        }
+        #delivery-mode-btn:hover {
+            background: rgba(0, 255, 255, 0.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #00FFFF; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
+        }
+        #loading-progress-bar { width: 400px; height: 5px; background: #222; margin-top: 20px; border-radius: 2px; overflow: hidden; }
+        #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; transition: width 0.3s; } /* UX: Smooth progress bar fill */
+
+        /* =========================================================================
+         * New Menu Pages (Shop, Settings, Info)
+         * ========================================================================= */
+        .menu-page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95); /* UX: Slightly darker overlay */
+            z-index: 9999;
+            display: none; /* Initial hidden */
+            align-items: center; justify-content: center;
+            flex-direction: column;
+            padding: 40px;
+            box-sizing: border-box;
+            backdrop-filter: blur(8px); /* UX: Increased blur */
+            opacity: 0; /* UX: Fade-in animation setup */
+            transition: opacity 0.4s;
+        }
+        .menu-page.active { opacity: 1; display: flex; } /* UX: Use active class for visibility */
+        .menu-page h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 48px; color: #FF00FF;
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+        .menu-page p {
+            font-size: 20px; color: #E0FFFF; line-height: 1.6;
+            max-width: 600px; text-align: center;
+        }
+        .menu-page .detail-line {
+            font-family: 'Rajdhani', sans-serif; font-size: 22px; margin: 10px 0;
+            text-align: left; width: 100%; max-width: 400px;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+        .menu-page .detail-line strong {
+            color: #00FFFF; margin-right: 15px; font-weight: 700;
+        }
+        #menu-close-btn {
+            position: absolute; top: 40px; right: 40px;
+            background: #FF00FF; color: #000; border: none;
+            padding: 12px 25px; /* UX: Larger close button */
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+            clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+        }
+        #menu-close-btn:hover {
+            background: #00FFFF; box-shadow: 0 0 15px #00FFFF; transform: scale(1.05);
+        }
+
     </style>
 </head>
 <body>
@@ -17,7 +265,104 @@
         <div id="loading-progress-bar"><div id="loading-progress-fill"></div></div>
         <p id="loading-status" style="margin-top:10px; font-size:14px; font-family:'Rajdhani';">(0%) Loading Assets...</p> </div>
 
+    <div id="shop-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">MAIN MENU</button>
+        <h2>SHOP & UPGRADES</h2>
+        <p style="color: #00FFFF; font-size: 24px;">COME BACK AGIN FOR FUTURE UPDATES :)</p>
+        <p>Unlock new cars, new maps, and performance upgrades in the next major patch!</p>
+    </div>
+
+    <div id="settings-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">BACK TO MENU</button>
+        <h2>GAME SETTINGS</h2>
+        <p style="color: #00FFFF; font-size: 24px;">COME BACK FOR FUTURE UPDATES :)</p>
+        <p>Configure graphics, controls, and sound options when settings are implemented.</p>
+    </div>
+
+    <div id="info-page" class="menu-page">
+        <button id="menu-close-btn" onclick="hideMenuPages()">MAIN MENU</button>
+        <h2>SYSTEM INFO</h2>
+        <div style="margin-top: 20px;">
+            <div class="detail-line"><strong>AUTHOR:</strong> ZHANYI ZHOU</div>
+            <div class="detail-line"><strong>EMAIL</strong> z03640940@gmail.com</div>
+            <div class="detail-line"><strong>GAME NAME:</strong> OPEN WORLD HYPER DRIVE</div>
+            <div class="detail-line"><strong>ENGINE:</strong> HTML5 (THREE.js + CANNON.js)</div>
+            <div class="detail-line"><strong>VERSION</strong> V 1.0</div>
+        </div>
+        <p style="margin-top: 40px; font-size: 18px; color: #00FF00;">
+            CONTACT ME!! <br>IF YOU HAVE ANY QUESTIONS, ANY PROBLEMS, ISSUES, OR IDEAS FOR FUTURE VERSION, DON'T FORGET TO REACH ME BY EMAIL!!
+        </p>
+    </div>
+
+    <div id="splash">
+        <div class="splash-header">
+            <h1>OPEN WORLD<br>HYPER DRIVE</h1>
+            <p class="splash-subtitle">MADE BY ZHANYI ZHOU</p>
+        </div>
+
+        <div class="splash-top-right">
+            <span class="label">GOLD COINS</span><br>
+            <span class="value" id="splash-coin-count">0</span>
+        </div>
+
+        <div class="splash-left-menu">
+            <button class="menu-btn" onclick="showMenuPage('shop-page')">SHOP</button>
+            <button class="menu-btn" onclick="showMenuPage('settings-page')">SETTINGS</button>
+            <button class="menu-btn" onclick="showMenuPage('info-page')">INFO</button>
+        </div>
+
+        <div class="splash-footer">
+            <button id="delivery-mode-btn" onclick="startDeliveryMode()">DELIVERY MODE</button>
+            <button id="start-button" onclick="enterGame()">PLAY NOW</button>
+        </div>
+    </div>
+
     <div class="copyright-tag">ZHANYI ZHOU DESIGN © 2025</div>
+
+    <div id="hud-layer" style="display:none;">
+        <div class="hud-top-left">
+            <div class="instrument spd-color">
+                <span class="label">Speed</span> <span class="value" id="hud-spd">0</span> <span class="unit">KM/H</span>
+            </div>
+            <div class="instrument rpm-color">
+                <span class="label">RPM</span> <span class="value" id="hud-rpm">0</span> <span class="unit">x100</span>
+            </div>
+            <div class="instrument gear-color">
+                <span class="label">Gear</span> <span class="value" id="hud-gear">P</span> <span class="unit">MODE</span>
+            </div>
+            <div class="instrument throttle-color">
+                <span class="label">Throttle</span> <span class="value" id="hud-throttle">0%</span>
+            </div>
+            <div class="instrument">
+                <span class="label">Altitude</span> <span class="value" id="hud-alt">0</span> <span class="unit">M</span>
+            </div>
+            <div class="instrument">
+                <span class="label">Heading</span> <span class="value" id="hud-hdg">000</span> <span class="unit">DEG</span>
+            </div>
+        </div>
+
+        <div class="hud-top-right">
+            <div class="instrument" id="hud-coin">
+                <span class="label">GOLD COIN</span> <span class="value" id="coin-count">0</span>
+            </div>
+        </div>
+        
+        <div id="delivery-hud">
+            <div class="mission-title" id="mission-status-text">MISSION: OFFLINE</div>
+            <div class="mission-detail">DISTANCE: <span id="delivery-distance-value">0</span> M</div>
+            <div class="mission-detail">TIME LEFT: <span id="delivery-timer-value">--:--</span></div>
+        </div>
+        <div class="hud-bottom">
+            <div id="control-hints">
+                <div class="hint-title">SYSTEM CONTROLS</div>
+                <div>[SHIFT] NITRO BOOST</div>
+                <div>[SPACE] DRIFT / BRAKE</div>
+                <div>[V] CHANGE CAMERA</div>
+                <div class="respawn-hint">[R] RESPAWN CAR</div>
+                <div>[WASD] DRIVE</div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
@@ -51,51 +396,412 @@
     // ** Initial Vehicle Position **
     const initialCarPosition = new CANNON.Vec3(90, 0.7, 0);
 
-    // ** AI Vehicle Variables **
-    let aiVehicle;
-    let aiChassisBody;
-    let aiCarMesh = null;
-    let aiWheelMeshes = [];
+    let staticBodies = [];
+    let carMesh = null;
+    let tireMeshPrototype = null;
+    let flameMesh = null;
+    let targetArrowMesh = null; // ** Target Indicator Arrow Mesh **
+    let gltfLoader = null;
+    let dracoLoader = null;
 
-    // AI Patrol Vars
-    const PATROL_POINTS = [
-        // FIX: 将 AI 车的起始点改为 x=-90, z=30，并将 Y 轴提高到 1.0 
-        new THREE.Vector3(-90, 1.0, 30), 
-        // 保持其他巡逻点相对高度一致
-        new THREE.Vector3(-500, 1.0, 500),
-        new THREE.Vector3(-500, 1.0, -500),
-        new THREE.Vector3(100, 1.0, -500)
-    ]; // Simple square patrol route
-    let currentPatrolIndex = 0;
-    const PATROL_THRESHOLD = 50; // Distance to next waypoint before switching
+    const inputState = { keyW: false, keyS: false, keyA: false, keyD: false, keySpace: false, keyShift: false, keyR: false };
 
-    // ... (其他变量与函数定义保持不变) ...
+    // UI Elements
+    const speedEl = document.getElementById('hud-spd');
+    const altitudeEl = document.getElementById('hud-alt');
+    const headingEl = document.getElementById('hud-hdg');
+    const rpmEl = document.getElementById('hud-rpm');
+    const gearEl = document.getElementById('hud-gear');
+    const throttleEl = document.getElementById('hud-throttle');
+    const coinCountEl = document.getElementById('coin-count');
+    const splashCoinCountEl = document.getElementById('splash-coin-count');
+    const loadingStatusEl = document.getElementById('loading-status'); // UX: Added reference
+    const loadingProgressFillEl = document.getElementById('loading-progress-fill'); // UX: Added reference
 
-    function initAIVehicle() {
-        // Ensure AI car model is loaded and tire prototype is ready
-        if (!aiCarMesh || !tireMeshPrototype) {
-            return; 
+    // ** Delivery Mode Elements **
+    const deliveryHudEl = document.getElementById('delivery-hud');
+    const missionStatusEl = document.getElementById('mission-status-text');
+    const distanceEl = document.getElementById('delivery-distance-value');
+    const timerEl = document.getElementById('delivery-timer-value');
+
+    let engineForce = 0;
+    let steeringValue = 0;
+
+    // Coin Vars
+    let coinProto = null;
+    let coinMeshes = [];
+    let coinBodies = [];
+    let coinCount = 0;
+    const COIN_MIN = 50;
+    const COIN_MAX = 80;
+    const COIN_SPAWN_RADIUS = 1500; 
+    const COIN_HEIGHT = 0.7;
+
+    // ** Predefined Delivery Points **
+    const DELIVERY_POINTS = [
+        { name: "Central Plaza", x: 90, y: 1.0, z: 0 },
+        { name: "West Dock", x: -500, y: 1.0, z: 300 },
+        { name: "Pizza Pizza", x: 1800, y: 1.0, z: -200 },
+        { name: "Industrial Zone", x: -3200, y: 1.0, z: -200 },
+        { name: "Airport Gate", x: 450, y: 1.0, z: 250 },
+        { name: "City Museum", x: 250, y: 1.0, z: -150 }, 
+        { name: "Southern Freeway", x: 90, y: 3.0, z: 400 }, 
+        { name: "City center", x: -6000, y: 3.0, z: 400 }, 
+    ];
+
+    // ** Delivery Mode Variables **
+    let isDeliveryModeActive = false;
+    const MAX_MISSION_TIME = 240; 
+    const TARGET_RADIUS = 5; 
+    let currentMission = {
+        status: 'none', 
+        pickupPoint: null, 
+        deliveryTarget: null, 
+        timeStarted: 0,
+        timeLimit: 0,
+        pickupMesh: null, 
+        deliveryMesh: null, 
+        pickupName: '',
+        deliveryName: '',
+    };
+    
+    // =============================================================================
+    // ** INTERACTION: Splash Screen Drag Rotation **
+    // =============================================================================
+    document.addEventListener('mousedown', (e) => {
+        if (!isGameRunning) {
+            isDragging = true;
+            previousMouseX = e.clientX;
+            document.body.style.cursor = 'grabbing';
+            document.getElementById('splash').style.cursor = 'grabbing';
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        document.body.style.cursor = 'default';
+        document.getElementById('splash').style.cursor = 'grab';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging && !isGameRunning) {
+            const deltaX = e.clientX - previousMouseX;
+            splashCameraAngle -= deltaX * 0.005;
+            previousMouseX = e.clientX;
+        }
+    });
+
+    // =============================================================================
+    // ** NEW: Menu Page Show/Hide Logic (UX Enhanced) **
+    // =============================================================================
+    function showMenuPage(pageId) {
+        // Find the page element and apply the active class for fade-in
+        const page = document.getElementById(pageId);
+        if (page) {
+            document.getElementById('splash').style.opacity = '0'; // Start fading splash
+            setTimeout(() => {
+                document.getElementById('splash').style.display = 'none'; // Hide splash when faded
+                page.style.display = 'flex'; // Show page container
+                setTimeout(() => {
+                    page.classList.add('active'); // Start fade-in animation
+                }, 10); // Small delay to trigger CSS transition
+            }, 400); // Match splash opacity transition time
+        }
+    }
+
+    function hideMenuPages() {
+        const pages = document.querySelectorAll('.menu-page');
+        pages.forEach(page => page.classList.remove('active')); // Start fade-out
+
+        document.getElementById('splash').style.display = 'block'; // Show splash container
+        setTimeout(() => {
+            document.getElementById('splash').style.opacity = '1'; // Fade splash in
+            // Wait for fade-out, then hide the page
+            setTimeout(() => {
+                 pages.forEach(page => page.style.display = 'none');
+            }, 400);
+        }, 10);
+    }
+
+
+    // =============================================================================
+    // ** DELIVERY MODE CORE LOGIC **
+    // =============================================================================
+
+    window.startDeliveryMode = function() {
+        if (!chassisBody) {
+            // UX: Translated alert message
+            alert("Please wait for assets to load or enter the game first."); 
+            return;
         }
 
+        if (!isGameRunning) {
+            enterGame();
+        }
+
+        isDeliveryModeActive = true;
+        deliveryHudEl.style.display = 'block';
+
+        respawnCar();
+        generateNewMission();
+    }
+
+    function generateNewMission() {
+        if (DELIVERY_POINTS.length < 2) {
+            // UX: Translated status text
+            missionStatusEl.textContent = 'MISSION ERROR: Not enough mission points (Need at least 2).';
+            return;
+        }
+
+        // Cleanup previous mission (if any)
+        if (currentMission.pickupPoint) world.removeBody(currentMission.pickupPoint);
+        if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
+        if (currentMission.pickupMesh) scene.remove(currentMission.pickupMesh);
+        if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
+        chassisBody.removeEventListener('collide', handleMissionCollision); 
+
+        // 1. Randomly select pickup and delivery points
+        let idx1 = Math.floor(Math.random() * DELIVERY_POINTS.length);
+        let idx2;
+        do {
+            idx2 = Math.floor(Math.random() * DELIVERY_POINTS.length);
+        } while (idx1 === idx2);
+
+        const pickupData = DELIVERY_POINTS[idx1];
+        const deliveryData = DELIVERY_POINTS[idx2];
+        
+        const pickupPos = new CANNON.Vec3(pickupData.x, pickupData.y, pickupData.z);
+        const deliveryPos = new CANNON.Vec3(deliveryData.x, deliveryData.y, deliveryData.z);
+
+        // 2. Create Pickup Point physics body
+        const targetShape = new CANNON.Sphere(TARGET_RADIUS);
+        const pickupBody = new CANNON.Body({ mass: 0, position: pickupPos, shape: targetShape });
+        pickupBody.collisionResponse = 0; 
+        world.addBody(pickupBody);
+
+        // 3. Create Delivery Target physics body
+        const deliveryBody = new CANNON.Body({ mass: 0, position: deliveryPos, shape: targetShape });
+        deliveryBody.collisionResponse = 0;
+        world.addBody(deliveryBody);
+
+        // 4. Create visual meshes 
+        const pickupMesh = createTargetMesh(0x00FFFF);
+        pickupMesh.position.copy(pickupPos);
+        scene.add(pickupMesh);
+        
+        const deliveryMesh = createTargetMesh(0x00FF00);
+        deliveryMesh.position.copy(deliveryPos);
+        deliveryMesh.visible = false; 
+        scene.add(deliveryMesh); 
+
+        // 5. Update mission state
+        currentMission = {
+            status: 'pickup',
+            pickupPoint: pickupBody,
+            deliveryTarget: deliveryBody,
+            timeStarted: performance.now(),
+            timeLimit: MAX_MISSION_TIME,
+            pickupMesh: pickupMesh,
+            deliveryMesh: deliveryMesh,
+            pickupName: pickupData.name,
+            deliveryName: deliveryData.name,
+        };
+
+        // UX: Translated mission status template
+        missionStatusEl.textContent = `MISSION: Go to ${pickupData.name} for Pickup`;
+        missionStatusEl.style.color = '#00FFFF';
+
+        // 6. Add collision listener
+        chassisBody.addEventListener('collide', handleMissionCollision);
+    }
+
+    function createTargetMesh(color) {
+        const geometry = new THREE.CylinderGeometry(TARGET_RADIUS / 2, TARGET_RADIUS / 2, TARGET_RADIUS, 16);
+        const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.7 });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y += TARGET_RADIUS / 2; 
+        return mesh;
+    }
+
+    function handleMissionCollision(e) {
+        if (!isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') return;
+
+        const otherBody = (e.body === chassisBody) ? e.target : e.body;
+
+        if (currentMission.status === 'pickup' && otherBody === currentMission.pickupPoint) {
+            // Mission Stage 1: Pickup Complete
+            currentMission.status = 'delivering';
+            // UX: Translated mission status template
+            missionStatusEl.textContent = `MISSION: Deliver cargo to ${currentMission.deliveryName}`;
+            missionStatusEl.style.color = '#00FF00';
+            
+            currentMission.pickupMesh.visible = false;
+            currentMission.deliveryMesh.visible = true;
+
+        } else if (currentMission.status === 'delivering' && otherBody === currentMission.deliveryTarget) {
+            // Mission Stage 2: Delivery Complete
+            completeMission(true);
+        }
+    }
+
+    function completeMission(success) {
+        const timeElapsed = (performance.now() - currentMission.timeStarted) / 1000;
+        let reward = 100;
+
+        chassisBody.removeEventListener('collide', handleMissionCollision);
+
+        if (success) {
+            const timeBonus = Math.max(0, currentMission.timeLimit - timeElapsed);
+            reward += Math.floor(timeBonus * 2); 
+            coinCount += reward;
+            localStorage.setItem('goldCoinCount', coinCount);
+            splashCoinCountEl.textContent = coinCount;
+            coinCountEl.textContent = coinCount;
+
+            // UX: Translated success message
+            missionStatusEl.textContent = `MISSION SUCCESS! (+${reward} GOLD)`;
+            missionStatusEl.style.color = '#FFD700';
+            
+            if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
+            if (currentMission.pickupMesh) scene.remove(currentMission.pickupMesh);
+            
+            // UX: Shorter delay after success to start next mission
+            setTimeout(generateNewMission, 3000); 
+
+        } else {
+            // UX: Translated failure message
+            missionStatusEl.textContent = 'MISSION FAILED! Time Expired.';
+            missionStatusEl.style.color = '#FF0000';
+            setTimeout(generateNewMission, 3000); // UX: Shorter delay after failure
+        }
+        
+        // Cleanup target physics bodies
+        if (currentMission.pickupPoint) world.removeBody(currentMission.pickupPoint);
+        if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
+        currentMission.status = 'completed';
+    }
+
+
+    function updateDeliveryMode() {
+        if (!isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') return;
+
+        const now = performance.now();
+        const timeElapsed = (now - currentMission.timeStarted) / 1000;
+        const timeLeft = currentMission.timeLimit - timeElapsed;
+
+        if (timeLeft <= 0) {
+            return completeMission(false); 
+        }
+
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = Math.floor(timeLeft % 60).toString().padStart(2, '0');
+        timerEl.textContent = `${minutes}:${seconds}`;
+
+        // Calculate distance
+        let targetBody = null;
+        if (currentMission.status === 'pickup') {
+            targetBody = currentMission.pickupPoint;
+        } else if (currentMission.status === 'delivering') {
+            targetBody = currentMission.deliveryTarget;
+        }
+
+        if (targetBody) {
+            const dist = chassisBody.position.distanceTo(targetBody.position);
+            distanceEl.textContent = dist.toFixed(0);
+        } else {
+            distanceEl.textContent = '0';
+        }
+    }
+    
+    // =============================================================================
+    // ** THREE.js/Cannon.js BASIC SETUP **
+    // =============================================================================
+    function initThree() {
+        scene = new THREE.Scene();
+        scene.background = daySkyColor.clone();
+        scene.fog = new THREE.Fog(daySkyColor, 500, 800);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        // ** MODIFICATION 1: Reduce Pixel Ratio by half **
+        renderer.setPixelRatio(window.devicePixelRatio / 1.2); 
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+    }
+
+    function initCannon() {
+        world = new CANNON.World();
+        world.gravity.set(0, -9.82, 0);
+        world.broadphase = new CANNON.SAPBroadphase(world);
+        world.allowSleep = true;
+
+        const defaultMaterial = new CANNON.Material('default');
+        const contactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
+            friction: 1.0, restitution: 0.0
+        });
+        world.defaultContactMaterial = contactMaterial;
+        world.addContactMaterial(contactMaterial);
+    }
+
+    function initGround() {
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({ mass: 0 });
+        groundBody.addShape(groundShape);
+        groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+        world.addBody(groundBody);
+
+        const groundGeo = new THREE.PlaneGeometry(3000, 3000, 10, 10); // Enlarge ground
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 });
+        const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+        groundMesh.rotation.x = -Math.PI / 2;
+        groundMesh.position.y = -0.05;
+        groundMesh.receiveShadow = true;
+        scene.add(groundMesh);
+    }
+
+    function initCameraAndLights() {
+        cameraChase = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000); // Increase field of view distance
+        cameraCockpit = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
+        activeCamera = cameraChase;
+
+        hemiLight = new THREE.HemisphereLight(dayHemiSky.clone(), dayHemiGround.clone(), 0.8);
+        scene.add(hemiLight);
+
+        dirLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
+        dirLight.position.set(50,100,50);
+        dirLight.castShadow = true;
+        // ** MODIFICATION 2: Reduce Shadow Map Size by half **
+        dirLight.shadow.mapSize.width = 2048; 
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 1000; // Increase shadow distance
+        dirLight.shadow.camera.left = -200;
+        dirLight.shadow.camera.right = 200;
+        dirLight.shadow.camera.top = 200;
+        dirLight.shadow.camera.bottom = -200;
+        scene.add(dirLight);
+    }
+
+    function initVehicle() {
         const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
-        aiChassisBody = new CANNON.Body({
+        chassisBody = new CANNON.Body({
             mass: 2500, 
             shape: chassisShape,
-            // Start at the first patrol point (已在 PATROL_POINTS 中修改)
-            position: new CANNON.Vec3(PATROL_POINTS[0].x, PATROL_POINTS[0].y, PATROL_POINTS[0].z) 
+            position: initialCarPosition.clone()
         });
-        aiChassisBody.angularDamping = 0.9;
-        aiChassisBody.linearDamping = 0.05;
-        world.addBody(aiChassisBody);
+        chassisBody.angularDamping = 0.9; 
+        chassisBody.linearDamping = 0.05;
+        world.addBody(chassisBody);
 
-        aiVehicle = new CANNON.RaycastVehicle({
-            chassisBody: aiChassisBody,
+        vehicle = new CANNON.RaycastVehicle({
+            chassisBody: chassisBody,
             indexRightAxis: 0, indexUpAxis: 1, indexForwardAxis: 2
         });
 
         const axleWidth = 1.0;
         const wheelBase = 1.5;
-        function makeAIWheelOptions(x,y,z) {
+        function makeWheelOptions(x,y,z) {
             return {
                 radius: 0.5,
                 directionLocal: new CANNON.Vec3(0, -1, 0),
@@ -108,30 +814,584 @@
             };
         }
 
-        aiVehicle.addWheel(makeAIWheelOptions(-axleWidth, 0, wheelBase));
-        aiVehicle.addWheel(makeAIWheelOptions( axleWidth, 0, wheelBase));
-        aiVehicle.addWheel(makeAIWheelOptions(-axleWidth, 0, -wheelBase));
-        aiVehicle.addWheel(makeAIWheelOptions( axleWidth, 0, -wheelBase));
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase));
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase));
+        vehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase));
+        vehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase));
 
-        aiVehicle.addToWorld(world);
+        vehicle.addToWorld(world);
 
-        aiWheelMeshes = [];
-        for (let i = 0; i < aiVehicle.wheelInfos.length; i++) {
-            const wheelMesh = tireMeshPrototype.clone();
-            if(i===0 || i===2) wheelMesh.rotation.y = Math.PI;
-            // 将 AI 车轮设置为紫色/洋红色以匹配车身
-            wheelMesh.traverse((node) => { 
-                if (node.isMesh) {
-                    const mat = node.material.clone();
-                    if (mat.color) mat.color.setHex(0xFF00FF); 
-                    node.material = mat;
-                } 
-            });
-            aiWheelMeshes.push(wheelMesh);
-            scene.add(wheelMesh);
+        wheelMeshes = [];
+        if (tireMeshPrototype) {
+            for (let i = 0; i < vehicle.wheelInfos.length; i++) {
+                const wheelMesh = tireMeshPrototype.clone();
+                if(i===0 || i===2) wheelMesh.rotation.y = Math.PI; 
+                wheelMeshes.push(wheelMesh);
+                scene.add(wheelMesh);
+            }
+        } else {
+            const wheelMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+            for (let i = 0; i < vehicle.wheelInfos.length; i++) {
+                const wheel = vehicle.wheelInfos[i];
+                const cylinderGeometry = new THREE.CylinderGeometry(wheel.radius, wheel.radius, 0.2, 32);
+                cylinderGeometry.rotateZ(Math.PI / 2);
+                const wheelMesh = new THREE.Mesh(cylinderGeometry, wheelMat);
+                wheelMeshes.push(wheelMesh);
+                scene.add(wheelMesh);
+            }
         }
     }
-    // ... (animate 主循环和 updateAIControls 保持不变) ...
+
+    function respawnCar() {
+        if (!chassisBody) return;
+        chassisBody.position.copy(initialCarPosition); 
+        chassisBody.quaternion.set(0, 0, 0, 1);
+        chassisBody.velocity.set(0, 0, 0);
+        chassisBody.angularVelocity.set(0, 0, 0);
+        vehicle.applyEngineForce(0, 0); vehicle.applyEngineForce(0, 1); 
+        vehicle.applyEngineForce(0, 2); vehicle.applyEngineForce(0, 3); 
+        vehicle.setSteeringValue(0, 0); vehicle.setSteeringValue(0, 1);
+        vehicle.setBrake(0, 0); vehicle.setBrake(0, 1); vehicle.setBrake(0, 2); vehicle.setBrake(0, 3);
+        gearEl.textContent = 'P';
+    }
+    
+    // =============================================================================
+    // ** ASSET LOADING **
+    // =============================================================================
+    function initLoaders() {
+        dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+
+        const loadingManager = new THREE.LoadingManager();
+        
+        loadingManager.onProgress = function(itemUrl, itemsLoaded, itemsTotal) {
+            const percent = Math.floor((itemsLoaded / itemsTotal) * 100);
+            loadingProgressFillEl.style.width = percent + '%';
+            // UX: More detailed loading status
+            loadingStatusEl.innerText = `(${percent}%) Loading asset: ${itemUrl.substring(itemUrl.lastIndexOf('/') + 1)}...`;
+        };
+        
+        loadingManager.onLoad = function() {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.style.opacity = '0';
+            loadingStatusEl.innerText = `(100%) READY.`; // UX: Final ready status
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                document.getElementById('splash').style.display = 'block'; 
+                document.getElementById('splash').style.opacity = '1'; // UX: Fade in splash
+            }, 500);
+
+            initVehicle();
+            spawnCoinsWhenReady();
+            requestAnimationFrame(animate);
+        };
+
+        gltfLoader = new THREE.GLTFLoader(loadingManager);
+        gltfLoader.setDRACOLoader(dracoLoader);
+    }
+
+    function loadCarModel() {
+        gltfLoader.load('car1.glb', (gltf) => {
+            carMesh = gltf.scene;
+            carMesh.scale.set(104.7, 104.7, 104.7);
+            carMesh.rotation.y = Math.PI;
+            carMesh.traverse((node) => { if (node.isMesh) node.castShadow = true; });
+            scene.add(carMesh);
+
+            const flameGeometry = new THREE.ConeGeometry(0.3, 1, 16);
+            const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.75 });
+            flameMesh = new THREE.Mesh(flameGeometry, flameMaterial);
+            flameMesh.rotation.x = -Math.PI / 2;
+            flameMesh.position.set(0, 0, 2.5);
+            flameMesh.visible = false;
+            carMesh.add(flameMesh);
+        });
+    }
+    
+    // MODIFICATION 1: Adjust arrow size
+    function loadArrowModel() {
+        gltfLoader.load('arrow.glb', (gltf) => {
+            targetArrowMesh = gltf.scene;
+
+            // Reduce scale to 1.0
+            targetArrowMesh.scale.set(1.0, 1.0, 1.0); 
+            
+            // Set material and shadows
+            targetArrowMesh.traverse((node) => { 
+                if (node.isMesh) {
+                    node.castShadow = true; 
+                    node.material = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8, depthTest: false });
+                } 
+            });
+
+            targetArrowMesh.visible = false; // Initial hidden
+            scene.add(targetArrowMesh);
+            
+            // Cache mission colors
+            targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF);  // Cyan
+            targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00); // Green
+
+        }, undefined, (error) => {
+            console.error('Failed to load arrow.glb:', error);
+            // Fallback: Use ConeGeometry if arrow.glb fails to load
+            if (!targetArrowMesh) {
+                const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); 
+                const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
+                targetArrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                targetArrowMesh.visible = false;
+                scene.add(targetArrowMesh);
+                targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF);
+                targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00);
+            }
+        });
+    }
+
+    function loadTireModel() {
+        gltfLoader.load('tire1.glb', (gltf) => {
+            tireMeshPrototype = gltf.scene;
+            tireMeshPrototype.scale.set(0.75, 0.75, 0.75);
+            tireMeshPrototype.rotation.x = Math.PI / 2;
+            tireMeshPrototype.traverse((node) => { if (node.isMesh) node.castShadow = true; });
+        });
+    }
+
+    // MODIFICATION 3: Reduce city model scale and collision activation range
+    function loadCity() {
+        gltfLoader.load('https://ashley-developper.github.io/ASLFS/city.glb', (gltf) => {
+            const city = gltf.scene;
+            // Scale down city model to match the COIN_SPAWN_RADIUS = 1500
+            city.scale.set(4, 4, 4); 
+            city.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                    if (node.material) {
+                        const mat = node.material.clone ? node.material.clone() : node.material;
+                        if (mat.emissive !== undefined) {
+                            mat.emissive = new THREE.Color(0x000000);
+                            mat.emissiveIntensity = 0;
+                        }
+                        node.material = mat;
+                    }
+                }
+            });
+            scene.add(city);
+
+            city.updateMatrixWorld(true);
+            city.traverse((node) => {
+                if (node.isMesh) {
+                    const geometry = node.geometry.clone();
+                    geometry.applyMatrix4(node.matrixWorld);
+                    geometry.computeBoundingSphere();
+                    const vertices = Array.from(geometry.attributes.position.array);
+                    let indices = [];
+                    if (geometry.index) {
+                        indices = Array.from(geometry.index.array);
+                    } else {
+                        for (let i = 0; i < vertices.length/3; i++) indices.push(i);
+                    }
+                    const shape = new CANNON.Trimesh(vertices, indices);
+                    const body = new CANNON.Body({ mass: 0 });
+                    body.addShape(shape);
+                    staticBodies.push({
+                        body: body,
+                        center: new THREE.Vector3().copy(geometry.boundingSphere.center),
+                        radius: geometry.boundingSphere.radius,
+                        // Reduce activation range from 300 to 200
+                        added: false
+                    });
+                }
+            });
+        });
+    }
+
+    // =============================================================================
+    // ** Target Arrow Update - Fixed Pointing Logic **
+    // Change: Arrow rotated 90 degrees left
+    // =============================================================================
+    const _tempDirectionVector = new THREE.Vector3();
+    const _tempCarPosition = new THREE.Vector3();
+
+    function updateTargetArrow() {
+        if (!targetArrowMesh || !isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') {
+            if(targetArrowMesh) targetArrowMesh.visible = false;
+            return;
+        }
+
+        let targetPos = null;
+        let targetColor = null;
+
+        // 1. Determine target position and color
+        if (currentMission.status === 'pickup') {
+            targetPos = currentMission.pickupPoint.position; 
+            targetColor = targetArrowMesh.userData.pickupColor;
+        } else if (currentMission.status === 'delivering') {
+            targetPos = currentMission.deliveryTarget.position; 
+            targetColor = targetArrowMesh.userData.deliveryColor;
+        } else {
+            targetArrowMesh.visible = false;
+            return;
+        }
+        
+        targetArrowMesh.visible = true;
+
+        // Color update
+        targetArrowMesh.traverse((node) => {
+            if (node.isMesh && node.material.color) {
+                node.material.color.copy(targetColor);
+            }
+        });
+
+        // 2. Update arrow position in world space
+        _tempCarPosition.copy(chassisBody.position);
+        targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
+        
+        // 3. Rotation Logic: lookAt + 180 flip + extra rotation
+        const lookAtTarget = new THREE.Vector3(targetPos.x, targetArrowMesh.position.y, targetPos.z);
+        
+        // Reset rotation (crucial step to prevent extra rotations from GLB model)
+        targetArrowMesh.rotation.set(0, 0, 0); 
+        
+        // lookAt() makes the object's -Z axis point to the target.
+        targetArrowMesh.lookAt(lookAtTarget); 
+
+        // 1. Rotate 180 degrees around Y-axis (makes +Z axis point to the target)
+        targetArrowMesh.rotateY(Math.PI); 
+        
+        // 2. New: Rotate an extra +90 degrees around Y-axis (Rotate 90 degrees left)
+        targetArrowMesh.rotateY(Math.PI / 2); 
+        
+        // 3. Rotate 45 degrees around X-axis (Tilt forward/downward)
+        targetArrowMesh.rotateX(Math.PI / 4); 
+        
+        // 4. Slightly raise the arrow for better visibility
+        targetArrowMesh.position.y += 0.5;
+    }
+
+    // =============================================================================
+    // ** CONTROLS AND UPDATE **
+    // =============================================================================
+    window.addEventListener('keydown', (event) => {
+        if (!isGameRunning) return;
+        const k = event.key.toLowerCase();
+        if(k==='w') inputState.keyW = true;
+        if(k==='s') inputState.keyS = true;
+        if(k==='a') inputState.keyA = true;
+        if(k==='d') inputState.keyD = true;
+        if(k===' ') { inputState.keySpace = true; event.preventDefault(); }
+        if(k==='shift') inputState.keyShift = true;
+        if(k==='v') toggleCamera();
+        if(k==='r') { inputState.keyR = true; respawnCar(); }
+    });
+    window.addEventListener('keyup', (event) => {
+        const k = event.key.toLowerCase();
+        if(k==='w') inputState.keyW = false;
+        if(k==='s') inputState.keyS = false;
+        if(k==='a') inputState.keyA = false;
+        if(k==='d') inputState.keyD = false;
+        if(k===' ') inputState.keySpace = false;
+        if(k==='shift') inputState.keyShift = false;
+        if(k==='r') inputState.keyR = false;
+    });
+
+    function toggleCamera() {
+        activeCamera = (activeCamera === cameraChase) ? cameraCockpit : cameraChase;
+    }
+
+    function updateControls() {
+        if (!chassisBody || !isGameRunning) return;
+        if (inputState.keyW || inputState.keyS || inputState.keyA || inputState.keyD) {
+            if (chassisBody.sleepState === CANNON.Body.SLEEPING) chassisBody.wakeUp(); 
+        }
+        engineForce = 0; steeringValue = 0; let brake = 0;
+
+        const v = chassisBody.velocity;
+        const chassisQuaternion = new THREE.Quaternion(chassisBody.quaternion.x, chassisBody.quaternion.y, chassisBody.quaternion.z, chassisBody.quaternion.w);
+        const forwardVector = new THREE.Vector3(0, 0, 1).applyQuaternion(chassisQuaternion);
+        const velocityVector = new THREE.Vector3(v.x, v.y, v.z);
+        const isMovingForward = velocityVector.dot(forwardVector) > 0.5;
+        const isMovingBackward = velocityVector.dot(forwardVector) < -0.5;
+
+        if (inputState.keyA) steeringValue = maxSteerVal;
+        else if (inputState.keyD) steeringValue = -maxSteerVal;
+
+        if (inputState.keyW) {
+            if (isMovingBackward) brake = maxEngineForce * 0.5;
+            else { engineForce = -maxEngineForce; gearEl.textContent = 'D'; }
+        } else if (inputState.keyS) {
+            if (isMovingForward) brake = maxEngineForce * 0.5;
+            else { engineForce = maxEngineForce * 0.5; gearEl.textContent = 'R'; }
+        } else if (!inputState.keySpace) {
+            gearEl.textContent = (v.length()*3.6 < 1) ? 'P' : 'N';
+        }
+
+        if (inputState.keyShift && engineForce !== 0) {
+            engineForce *= 2.5;
+            if (flameMesh) flameMesh.visible = true;
+        } else {
+            if (flameMesh) flameMesh.visible = false;
+        }
+
+        vehicle.setSteeringValue(steeringValue, 0); vehicle.setSteeringValue(steeringValue, 1);
+        vehicle.applyEngineForce(engineForce, 0); vehicle.applyEngineForce(engineForce, 1); 
+        vehicle.applyEngineForce(engineForce, 2); vehicle.applyEngineForce(engineForce, 3); 
+
+        let finalBrakeRL = brake, finalBrakeRR = brake;
+        if (inputState.keySpace) {
+            finalBrakeRL = maxEngineForce * 0.8; finalBrakeRR = maxEngineForce * 0.8;
+            gearEl.textContent = 'E';
+        } else if (brake === 0) {
+            vehicle.setBrake(0, 0); vehicle.setBrake(0, 1); vehicle.setBrake(0, 2); vehicle.setBrake(0, 3);
+        }
+        vehicle.setBrake(brake, 0); vehicle.setBrake(brake, 1);
+        vehicle.setBrake(finalBrakeRL, 2); vehicle.setBrake(finalBrakeRR, 3);
+    }
+
+    function updateCamera() {
+        if (!chassisBody) return;
+        const chassisPos = new THREE.Vector3().copy(chassisBody.position);
+        
+        if (isGameRunning) {
+            const q = chassisBody.quaternion;
+            if (activeCamera === cameraChase) {
+                const idealOffset = new THREE.Vector3(0, 3, -7);
+                idealOffset.applyQuaternion(q);
+                idealOffset.add(chassisPos);
+                if(idealOffset.y < chassisPos.y + 0.5) idealOffset.y = chassisPos.y + 0.5;
+                cameraChase.position.lerp(idealOffset, 0.1);
+                cameraChase.lookAt(chassisPos.x, chassisPos.y + 1, chassisPos.z);
+            } else {
+                const offset = new THREE.Vector3(0, 0.8, 1.5);
+                offset.applyQuaternion(q);
+                offset.add(chassisPos);
+                cameraCockpit.position.copy(offset);
+                cameraCockpit.quaternion.copy(q);
+                const rotation180 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), Math.PI);
+                cameraCockpit.quaternion.multiply(rotation180);
+            }
+        } 
+        else {
+            if (!isDragging) {
+                splashCameraAngle += 0.002; 
+            }
+            const radius = 6.0;
+            const height = 2.0;
+            const x = chassisPos.x + Math.sin(splashCameraAngle) * radius;
+            const z = chassisPos.z + Math.cos(splashCameraAngle) * radius;
+            
+            cameraChase.position.set(x, chassisPos.y + height, z);
+            cameraChase.lookAt(chassisPos.x, chassisPos.y, chassisPos.z);
+        }
+    }
+
+    function updateHUD(time) {
+        if (!chassisBody) return;
+        const v = chassisBody.velocity;
+        speedEl.textContent = (v.length() * 3.6).toFixed(0);
+        altitudeEl.textContent = chassisBody.position.y.toFixed(0);
+        
+        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(chassisBody.quaternion);
+        const heading = Math.atan2(forward.x, forward.z) * 180 / Math.PI;
+        headingEl.textContent = ((heading + 360) % 360).toFixed(0).padStart(3, '0');
+        
+        rpmEl.textContent = Math.min(99, Math.floor(v.length() * 3.6 * 1.5));
+        
+        let throttlePercent = 0;
+        if (engineForce !== 0) throttlePercent = Math.abs((engineForce / (maxEngineForce * 2.5)) * 100);
+        throttleEl.textContent = Math.min(100, throttlePercent).toFixed(0) + '%';
+
+        coinCountEl.textContent = coinCount;
+    }
+
+    function updateColliders() {
+        if (!chassisBody) return;
+        const chassisPos = new THREE.Vector3(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z);
+        staticBodies.forEach(obj => {
+            const d = chassisPos.distanceTo(obj.center);
+            // Reduce activation range to match smaller city model
+            if (!obj.added && d <= obj.radius + 200) { 
+                world.addBody(obj.body);
+                obj.added = true;
+            } else if (obj.added && d > obj.radius + 200) {
+                world.removeBody(obj.body);
+                obj.added = false;
+            }
+        });
+    }
+
+    function loadCoinPrototype(callback) {
+        const stored = localStorage.getItem('goldCoinCount');
+        coinCount = stored ? parseInt(stored, 10) : 0;
+        splashCoinCountEl.textContent = coinCount;
+        coinCountEl.textContent = coinCount;
+
+        const coinLoader = new THREE.GLTFLoader();
+        coinLoader.load('gold_coin.glb', (gltf) => {
+            coinProto = gltf.scene;
+            coinProto.traverse(node => { if (node.isMesh) node.castShadow = true; });
+            if (callback) callback();
+        }, undefined, (err) => {
+            console.warn('gold_coin.glb load failed', err);
+            if (callback) callback();
+        });
+    }
+
+    function spawnCoinsWhenReady() {
+        if (!chassisBody) {
+            setTimeout(spawnCoinsWhenReady, 200);
+            return;
+        }
+        if (!coinProto) {
+            loadCoinPrototype(() => spawnCoins(Math.floor(Math.random()*(COIN_MAX-COIN_MIN+1))+COIN_MIN));
+        } else {
+            spawnCoins(Math.floor(Math.random()*(COIN_MAX-COIN_MIN+1))+COIN_MIN);
+        }
+    }
+
+    function spawnCoins(num) {
+        if (!coinProto) return;
+        for (let i = 0; i < num; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * COIN_SPAWN_RADIUS;
+            const x = Math.cos(angle) * radius + (Math.random()-0.5)*20;
+            const z = Math.sin(angle) * radius + (Math.random()-0.5)*20;
+            const y = COIN_HEIGHT + (Math.random()*0.3 - 0.15); 
+
+            const coinMesh = coinProto.clone(true);
+            coinMesh.scale.set(1.0,1.0,1.0);
+            coinMesh.position.set(x, y, z);
+            coinMesh.rotation.y = Math.random()*Math.PI*2;
+            scene.add(coinMesh);
+            coinMeshes.push(coinMesh);
+
+            const coinBody = new CANNON.Body({ mass: 0 });
+            coinBody.addShape(new CANNON.Sphere(0.4));
+            coinBody.position.set(x, y, z);
+            coinBody.collisionResponse = 0;
+            coinBody.addEventListener('collide', (e) => {
+                const hitByChassis = (e.body === chassisBody) || (e.contact && (e.contact.bi === chassisBody || e.contact.bj === chassisBody));
+                if (hitByChassis) {
+                    const bIdx = coinBodies.indexOf(coinBody);
+                    if (bIdx !== -1) {
+                        const mesh = coinMeshes[bIdx];
+                        if (mesh) scene.remove(mesh);
+                        coinMeshes.splice(bIdx, 1);
+                        coinBodies.splice(bIdx, 1);
+                        try { world.removeBody(coinBody); } catch (err) {}
+                        coinCount += 1;
+                        localStorage.setItem('goldCoinCount', coinCount);
+                        coinCountEl.textContent = coinCount;
+                    }
+                }
+            });
+            coinBodies.push(coinBody);
+            world.addBody(coinBody);
+        }
+    }
+
+    // =============================================================================
+    // ** MAIN LOOP **
+    // =============================================================================
+    function animate(time) {
+        requestAnimationFrame(animate);
+        if (!chassisBody || !world) return;
+        
+        if (isGameRunning) {
+            const fixedTimeStep = 1/60;
+            const maxSubSteps = 1;
+            
+            if (lastTime !== undefined) {
+                const dt = (time - lastTime) / 1000;
+                world.step(fixedTimeStep, dt, maxSubSteps);
+            } else {
+                world.step(fixedTimeStep);
+            }
+            lastTime = time;
+            
+            updateControls();
+            updateColliders();
+            if (isDeliveryModeActive) {
+                updateDeliveryMode(); 
+                updateTargetArrow(); 
+            } else if (targetArrowMesh) {
+                targetArrowMesh.visible = false;
+            }
+        }
+
+        // Model position synchronization
+        for (let i = 0; i < vehicle.wheelInfos.length; i++) {
+            vehicle.updateWheelTransform(i);
+            const t = vehicle.wheelInfos[i].worldTransform;
+            if (wheelMeshes[i]) {
+                wheelMeshes[i].position.copy(t.position);
+                wheelMeshes[i].quaternion.copy(t.quaternion);
+            }
+        }
+        if (carMesh && chassisBody) {
+            carMesh.position.copy(chassisBody.position);
+            carMesh.quaternion.copy(chassisBody.quaternion);
+            carMesh.position.y += VISUAL_Y_OFFSET; 
+        }
+
+        for (let i = 0; i < coinMeshes.length; i++) {
+            if (coinBodies[i]) {
+                coinMeshes[i].position.copy(coinBodies[i].position);
+                coinMeshes[i].quaternion.copy(coinBodies[i].quaternion);
+                coinMeshes[i].rotation.y += 0.02;
+            }
+        }
+
+        updateCamera();
+        if (isGameRunning) updateHUD(time);
+
+        renderer.render(scene, activeCamera);
+    }
+
+    // =============================================================================
+    // ** STARTUP LOGIC **
+    // =============================================================================
+    
+    function initSystem() {
+        const stored = localStorage.getItem('goldCoinCount');
+        coinCount = stored ? parseInt(stored, 10) : 0;
+        splashCoinCountEl.textContent = coinCount;
+
+        initThree();
+        initCannon();
+        initGround();
+        initCameraAndLights();
+        initLoaders();
+        loadCarModel();
+        loadTireModel();
+        loadCity();
+        loadCoinPrototype();
+        loadArrowModel(); 
+    }
+
+    window.enterGame = function() { 
+        document.getElementById('splash').style.opacity = '0';
+        // UX: Increased delay for smoother transition
+        setTimeout(() => {
+            document.getElementById('splash').style.display = 'none';
+            document.getElementById('hud-layer').style.display = 'flex';
+        }, 500);
+        
+        isGameRunning = true; 
+        if(isDeliveryModeActive) deliveryHudEl.style.display = 'block';
+    }
+
+    window.addEventListener('resize', () => {
+        if (renderer && cameraChase && cameraCockpit) {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const aspect = window.innerWidth / window.innerHeight;
+            cameraChase.aspect = aspect;
+            cameraChase.updateProjectionMatrix();
+            cameraCockpit.aspect = aspect;
+            cameraCockpit.updateProjectionMatrix();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', initSystem);
 
     </script>
 </body>
