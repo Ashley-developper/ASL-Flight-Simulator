@@ -1166,141 +1166,182 @@
         });
     }
 
-  function updatePoliceAI() {
-        if(!policeActive || !policeChassis) return;
+ function updatePoliceAI() {
+    // 检查警察是否激活和底盘是否存在
+    if(!policeActive || !policeChassis) return;
 
-        const playerPos = chassisBody.position;
-        const policePos = policeChassis.position;
-        const dist = playerPos.distanceTo(policePos);
-        const policeSpeed = policeChassis.velocity.length() * 3.6; // KM/H
-        
-        let force = 0;
-        let brakeForce = 0;
-        const MAX_POLICE_FORCE = 20000;
-        const CLOSE_RANGE_FORCE = 5000;
+    // 获取玩家和警察的位置、距离、警察速度
+    const playerPos = chassisBody.position;
+    const policePos = policeChassis.position;
+    const dist = playerPos.distanceTo(policePos);
+    const policeSpeed = policeChassis.velocity.length() * 3.6; // KM/H
+    
+    let force = 0;
+    let brakeForce = 0;
+    const MAX_POLICE_FORCE = 20000;
+    
+    // --- 1. 转向逻辑：预判、平滑、速度限制 ---
+    const PREDICT_TIME = 0.5; // 预判时间 (秒)
+    const playerVelocity = chassisBody.velocity.clone();
+    
+    // 预测玩家未来位置，用于更精确的瞄准
+    const predictedPlayerPos = new CANNON.Vec3(
+        playerPos.x + playerVelocity.x * PREDICT_TIME,
+        playerPos.y, 
+        playerPos.z + playerVelocity.z * PREDICT_TIME
+    );
 
-        // 1. Steering Logic (IMPROVED with Damping and Dead Zone)
-        const targetVec = new CANNON.Vec3(playerPos.x - policePos.x, 0, playerPos.z - policePos.z);
-        const policeQuat = new THREE.Quaternion(policeChassis.quaternion.x, policeChassis.quaternion.y, policeChassis.quaternion.z, policeChassis.quaternion.w);
-        const forward = new THREE.Vector3(0,0,1).applyQuaternion(policeQuat);
-        const targetThree = new THREE.Vector3(targetVec.x, 0, targetVec.z).normalize();
-        
-        let angle = forward.angleTo(targetThree);
-        const cross = new THREE.Vector3().crossVectors(forward, targetThree);
-        if(cross.y > 0) angle = -angle; // Determine direction (+/-)
-        
-        let steer = angle; // Base steer is proportional to the angle
+    const targetVec = new CANNON.Vec3(predictedPlayerPos.x - policePos.x, 0, predictedPlayerPos.z - policePos.z);
+    
+    // 获取警察当前朝向和目标朝向的角度差
+    const policeQuat = new THREE.Quaternion(policeChassis.quaternion.x, policeChassis.quaternion.y, policeChassis.quaternion.z, policeChassis.quaternion.w);
+    const forward = new THREE.Vector3(0,0,1).applyQuaternion(policeQuat);
+    const targetThree = new THREE.Vector3(targetVec.x, 0, targetVec.z).normalize();
+    
+    let angle = forward.angleTo(targetThree);
+    const cross = new THREE.Vector3().crossVectors(forward, targetThree);
+    if(cross.y > 0) angle = -angle; // 确定转向方向 (+/-)
 
-        // ** Dead Zone & Multiplier Adjustment **
-        const DEAD_ZONE = 0.05; // 5% angle dead zone (approx 2.8 degrees)
-        if (Math.abs(angle) < DEAD_ZONE) {
-            steer = 0; // Prevent high-frequency jittering when almost aligned
-        } else {
-            // Distance-weighted steering multiplier: Milder turn far away, aggressive turn up close
-            const steerMultiplier = 1.5 + Math.max(0, (1 - dist / 150) * 1.5);
-            steer *= steerMultiplier; 
-        }
+    // 基础转向值：与角度成比例
+    let targetSteer = angle * 2.0; 
+    targetSteer = THREE.MathUtils.clamp(targetSteer, -maxSteerVal, maxSteerVal);
 
-        // Limit steering value
-        if(policeSpeed > 80) {
-            // High speed damping: reduce max turn angle at high speeds
-            steer = THREE.MathUtils.clamp(steer, -maxSteerVal * 0.5, maxSteerVal * 0.5);
-        } else {
-            steer = THREE.MathUtils.clamp(steer, -maxSteerVal, maxSteerVal);
-        }
+    // 平滑转向过渡 (Lerp)
+    const LERP_RATE = 0.15; // 转向平滑率
+    let currentSteer = policeVehicle.getSteeringValue(0); 
+    let steer = currentSteer + (targetSteer - currentSteer) * LERP_RATE;
 
+    // 速度依赖的转向极限 (高速时限制最大转向角)
+    const MAX_SPEED_TURN_LIMIT = 0.4; // 极限速度下的最大转向比率 (例如 maxSteerVal 的 40%)
+    const MAX_TURN_SPEED = 180; // 高速定义的阈值 (KM/H)
 
-        // 2. Engine Force Logic 
-        // Always try to move towards the player if they are far away
-        if(dist > 5) { 
-            force = -MAX_POLICE_FORCE; 
-            
-            // If we are facing the wrong direction (angle > 90 degrees), brake hard and turn
-            if (Math.abs(angle) > Math.PI / 2) { 
-                brakeForce = MAX_POLICE_FORCE * 0.8; // Aggressive braking
-                // Keep the steer value as calculated; the vehicle physics should handle the pivot
-            }
+    if(policeSpeed > 5) {
+        const speedFactor = Math.min(1, policeSpeed / MAX_TURN_SPEED); 
+        const turnLimit = maxSteerVal * (1 - speedFactor * (1 - MAX_SPEED_TURN_LIMIT));
+        steer = THREE.MathUtils.clamp(steer, -turnLimit, turnLimit);
+    }
+    
+    // --- 2. 引擎/刹车逻辑：分段速度控制和拦截 ---
+    const CLOSE_DIST = 10; // 中近距离阈值 (米)
+    const BRAKE_DIST = 3;  // 极近距离阈值 (米)
+    const TARGET_SPEED_FAR = 150; // 远距离目标巡航速度 (KM/H)
+    const TARGET_SPEED_NEAR = 30; // 近距离目标巡航速度 (KM/H)
 
-        } else { 
-            // Player is very close (less than 5m)
+    if (dist > CLOSE_DIST) {
+        // A. 远距离追逐：全速追求，但根据目标速度进行刹车调整
+        force = -MAX_POLICE_FORCE; 
+
+        // 目标速度根据距离平滑插值
+        const targetSpeed = THREE.MathUtils.lerp(TARGET_SPEED_NEAR, TARGET_SPEED_FAR, Math.min(1, (dist - CLOSE_DIST) / 50));
+
+        if (policeSpeed > targetSpeed) {
+            brakeForce = MAX_POLICE_FORCE * 0.5; // 缓和刹车以匹配速度
             force = 0; 
-            brakeForce = MAX_POLICE_FORCE; // Full stop/handbrake
-        }
-        
-        // If stuck (low speed, but large distance to target - implies player got behind or AI is beached)
-        if (policeSpeed < 5 && dist > 30) { 
-                force = -MAX_POLICE_FORCE; // Full acceleration to get moving again
-                brakeForce = 0;
+        } else if (policeSpeed < targetSpeed * 0.9) {
+            force = -MAX_POLICE_FORCE; 
         }
 
-
-        // 3. Self-righting mechanism: (Keep this)
-        const up = new THREE.Vector3(0,1,0).applyQuaternion(policeQuat);
-        if(up.y < 0.2) {
-             policeChassis.position.y += 2;
-             policeChassis.quaternion.set(0,0,0,1);
-             policeChassis.velocity.set(0,0,0);
-             policeChassis.angularVelocity.set(0,0,0);
+        // 调头逻辑：如果角度大于 90 度，猛刹车
+        if (Math.abs(angle) > Math.PI / 2) { 
+            brakeForce = MAX_POLICE_FORCE; 
+            force = 0;
         }
 
-        // 4. Apply Controls (Keep this)
-        policeVehicle.setSteeringValue(steer, 0);
-        policeVehicle.setSteeringValue(steer, 1);
+    } else if (dist <= CLOSE_DIST && dist > BRAKE_DIST) {
+        // B. 中近距离拦截：减速以保持接触，避免冲过头
         
-        // Reset all forces before applying new ones
-        policeVehicle.applyEngineForce(0, 0); policeVehicle.applyEngineForce(0, 1);
-        policeVehicle.applyEngineForce(0, 2); policeVehicle.applyEngineForce(0, 3);
-        policeVehicle.setBrake(0, 0); policeVehicle.setBrake(0, 1);
-        policeVehicle.setBrake(0, 2); policeVehicle.setBrake(0, 3);
-
-        // Apply calculated forces
-        policeVehicle.applyEngineForce(force, 0);
-        policeVehicle.applyEngineForce(force, 1);
-        policeVehicle.applyEngineForce(force, 2);
-        policeVehicle.applyEngineForce(force, 3);
+        // 距离越近，刹车力度越大
+        const slowDownBrake = (1 - (dist - BRAKE_DIST) / (CLOSE_DIST - BRAKE_DIST)) * MAX_POLICE_FORCE * 0.8; 
+        brakeForce = slowDownBrake;
         
-        policeVehicle.setBrake(brakeForce, 0);
-        policeVehicle.setBrake(brakeForce, 1);
-        policeVehicle.setBrake(brakeForce, 2);
-        policeVehicle.setBrake(brakeForce, 3);
-
-        
-        // 5. Update Visuals (Synchronization) (Keep this)
-        for(let i=0; i<policeVehicle.wheelInfos.length; i++){
-            policeVehicle.updateWheelTransform(i);
-            let t = policeVehicle.wheelInfos[i].worldTransform;
-            if(policeWheelMeshes[i]) {
-                policeWheelMeshes[i].position.copy(t.position);
-                policeWheelMeshes[i].quaternion.copy(t.quaternion);
-            }
-        }
-        if(policeMesh) {
-            policeMesh.position.copy(policeChassis.position);
-            policeMesh.quaternion.copy(policeChassis.quaternion);
-            policeMesh.position.y += VISUAL_Y_OFFSET;
-            
-            // Siren Flash
-            if(policeLight) {
-                policeSirenTimer++;
-                if(policeSirenTimer > 10) {
-                    policeSirenTimer = 0;
-                    policeLight.state = !policeLight.state;
-                    // Flash between bright and dim to simulate light
-                    policeLight.red.material.color.setHex(policeLight.state ? 0xff0000 : 0x330000);
-                    policeLight.blue.material.color.setHex(!policeLight.state ? 0x0000ff : 0x000033);
-                }
-            }
+        // 缓慢加速以保持接近
+        if (policeSpeed < TARGET_SPEED_NEAR * 0.5) {
+             force = -MAX_POLICE_FORCE * 0.2;
         }
         
-        // Audio
-        if(Math.random() < 0.01) playSirenSound();
+    } else { 
+        // C. 极近距离 (< 3m)：猛烈刹车/撞击
+        force = 0;
+        brakeForce = MAX_POLICE_FORCE; 
     }
 
-    function gameOverPolice() {
-        isGameRunning = false;
-        document.getElementById('busted-screen').style.display = 'flex';
-        // Stop physics loops by setting flag
+
+    // 3. 防卡死检查 (如果速度极慢且离玩家很远)
+    if (policeSpeed < 3 && dist > 20) { 
+        if (Math.abs(angle) < Math.PI / 4) {
+            // 朝向正确，尝试向前加速
+            force = -MAX_POLICE_FORCE; 
+        } else {
+            // 朝向错误，尝试倒车脱困
+            force = MAX_POLICE_FORCE * 0.5; 
+        }
+        brakeForce = 0;
     }
+
+
+    // 4. 自恢复机制 (防止车辆翻倒)
+    const up = new THREE.Vector3(0,1,0).applyQuaternion(policeQuat);
+    if(up.y < 0.2) {
+         policeChassis.position.y += 2; // 抬升
+         policeChassis.quaternion.set(0,0,0,1); // 重置旋转
+         policeChassis.velocity.set(0,0,0); // 清除速度
+         policeChassis.angularVelocity.set(0,0,0); // 清除角速度
+    }
+
+    // --- 5. 应用控制 ---
+    
+    // 应用转向
+    policeVehicle.setSteeringValue(steer, 0);
+    policeVehicle.setSteeringValue(steer, 1);
+    
+    // 重置所有引擎力和刹车力
+    policeVehicle.applyEngineForce(0, 0); policeVehicle.applyEngineForce(0, 1);
+    policeVehicle.applyEngineForce(0, 2); policeVehicle.applyEngineForce(0, 3);
+    policeVehicle.setBrake(0, 0); policeVehicle.setBrake(0, 1);
+    policeVehicle.setBrake(0, 2); policeVehicle.setBrake(0, 3);
+
+    // 应用计算出的引擎力和刹车力 (作用于所有轮子)
+    policeVehicle.applyEngineForce(force, 0);
+    policeVehicle.applyEngineForce(force, 1);
+    policeVehicle.applyEngineForce(force, 2);
+    policeVehicle.applyEngineForce(force, 3);
+    
+    policeVehicle.setBrake(brakeForce, 0);
+    policeVehicle.setBrake(brakeForce, 1);
+    policeVehicle.setBrake(brakeForce, 2);
+    policeVehicle.setBrake(brakeForce, 3);
+
+    // --- 6. 更新视觉效果 (保持不变) ---
+    for(let i=0; i<policeVehicle.wheelInfos.length; i++){
+        policeVehicle.updateWheelTransform(i);
+        let t = policeVehicle.wheelInfos[i].worldTransform;
+        if(policeWheelMeshes[i]) {
+            policeWheelMeshes[i].position.copy(t.position);
+            policeWheelMeshes[i].quaternion.copy(t.quaternion);
+        }
+    }
+    if(policeMesh) {
+        policeMesh.position.copy(policeChassis.position);
+        policeMesh.quaternion.copy(policeChassis.quaternion);
+        // 假设 VISUAL_Y_OFFSET 已定义
+        policeMesh.position.y += VISUAL_Y_OFFSET; 
+        
+        // 警灯闪烁
+        if(policeLight) {
+            policeSirenTimer++;
+            if(policeSirenTimer > 10) {
+                policeSirenTimer = 0;
+                policeLight.state = !policeLight.state;
+                // Flash between bright and dim to simulate light
+                policeLight.red.material.color.setHex(policeLight.state ? 0xff0000 : 0x330000);
+                policeLight.blue.material.color.setHex(!policeLight.state ? 0x0000ff : 0x000033);
+            }
+        }
+    }
+    
+    // 音频
+    if(Math.random() < 0.01) playSirenSound();
+}
 
 
 
