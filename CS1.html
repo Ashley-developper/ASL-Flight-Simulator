@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-    <title>OPEN WORLD HYPER DRIVE</title>
+    <title>OPEN WORLD HYPER DRIVE - POLICE CHASE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================================================
@@ -17,7 +17,7 @@
             color: #E0FFFF;
             user-select: none; 
             -webkit-user-select: none;
-            touch-action: none; /* Prevent mobile pull-to-refresh */
+            touch-action: none; 
         }
         
         /* =========================================================================
@@ -93,6 +93,37 @@
         #delivery-distance-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFFFFF; }
         #delivery-timer-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFD700; }
 
+        /* ** Police HUD Style ** */
+        #police-hud {
+            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+            text-align: center; display: none;
+        }
+        #police-alert {
+            font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+            color: #FF0000; text-shadow: 0 0 15px red; letter-spacing: 3px;
+            animation: blinkRed 0.5s infinite alternate;
+        }
+        #police-timer {
+            font-family: 'Orbitron'; font-size: 20px; color: #fff; margin-top: 5px;
+        }
+        @keyframes blinkRed { from { opacity: 1; } to { opacity: 0.3; } }
+
+        /* ** BUSTED SCREEN ** */
+        #busted-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 50, 0.8); z-index: 2000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        #busted-text {
+            font-family: 'Orbitron'; font-size: 100px; color: #FF0000; font-weight: 900;
+            text-shadow: 0 0 30px #FF0000; transform: rotate(-10deg); border: 5px solid red;
+            padding: 10px 40px; letter-spacing: 10px;
+        }
+        #busted-restart-btn {
+            margin-top: 50px; padding: 20px 60px; font-size: 24px; font-family: 'Orbitron';
+            background: white; border: none; cursor: pointer; font-weight: bold;
+        }
+
         #control-hints {
             position: absolute; bottom: 30px; left: 30px;
             background: rgba(0, 0, 0, 0.8);
@@ -107,10 +138,10 @@
         .copyright-tag { position: fixed; bottom: 15px; right: 15px; font-size: 12px; color: rgba(255, 255, 255, 0.3); z-index: 10; }
 
         /* =========================================================================
-         * MOBILE CONTROLS (NEW)
+         * MOBILE CONTROLS
          * ========================================================================= */
         #mobile-controls {
-            display: none; /* Shown via JS on touch devices */
+            display: none; 
             position: absolute; bottom: 20px; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 20;
         }
@@ -144,7 +175,6 @@
         }
         #splash:active { cursor: grabbing; }
 
-        /* Title Area */
         .splash-header {
             position: absolute; top: 60px; left: 0; width: 100%;
             text-align: center; pointer-events: none;
@@ -161,7 +191,6 @@
             letter-spacing: 6px; margin-top: 10px; font-weight: 600;
         }
 
-        /* Top Right Coin Display */
         .splash-top-right {
             position: absolute; top: 40px; right: 40px;
             text-align: right; pointer-events: none;
@@ -169,12 +198,11 @@
         .splash-top-right .label { font-size: 12px; color: #FFD700; text-shadow: 0 0 10px #FFD700; margin-bottom: 5px;}
         .splash-top-right .value { font-size: 42px; color: #FFD700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
 
-        /* Left Menu Buttons (SHOP, SETTINGS, INFO) */
         .splash-left-menu {
             position: absolute; top: 50%; left: 40px;
             transform: translateY(-50%);
             display: flex; flex-direction: column; gap: 20px;
-            pointer-events: auto; /* Ensure clickable */
+            pointer-events: auto; 
             z-index: 1000;
         }
         .menu-btn {
@@ -191,7 +219,6 @@
             box-shadow: 0 0 15px rgba(0,255,255,0.3);
         }
 
-        /* Bottom Button Area */
         .splash-footer {
             position: absolute; bottom: 60px; right: 60px;
             display: flex; gap: 20px; align-items: flex-end;
@@ -220,6 +247,16 @@
             background: rgba(0, 255, 255, 0.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
         }
 
+        #police-mode-btn { 
+            padding: 15px 40px; font-size: 16px; font-weight: 700;
+            color: #FF0055; background: rgba(40, 0, 0, 0.8);
+            border: 1px solid #FF0055; letter-spacing: 2px;
+            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 20%);
+        }
+        #police-mode-btn:hover {
+            background: rgba(255, 0, 85, 0.2); box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+        }
+
         /* Loading Screen */
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -231,7 +268,7 @@
         #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; transition: width 0.3s; }
 
         /* =========================================================================
-         * New Menu Pages (Shop, Settings, Info)
+         * New Menu Pages
          * ========================================================================= */
         .menu-page {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -278,7 +315,6 @@
             background: #00FFFF; box-shadow: 0 0 15px #00FFFF; transform: scale(1.05);
         }
 
-        /* SHOP SPECIFIC STYLES */
         .shop-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 20px;}
         .shop-item {
             background: rgba(0, 20, 40, 0.8); border: 1px solid #00FFFF;
@@ -296,7 +332,6 @@
         .shop-item.owned { border-color: #00FF00; }
         .shop-item.owned button { background: #00FF00; color: #000; }
 
-        /* Drifting Bonus Text */
         #drift-bonus {
             position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
             font-family: 'Orbitron'; font-style: italic; font-weight: 900;
@@ -313,6 +348,12 @@
         <p style="font-family:'Orbitron'; letter-spacing:2px;">HOTWHEELS</p>
         <div id="loading-progress-bar"><div id="loading-progress-fill"></div></div>
         <p id="loading-status" style="margin-top:10px; font-size:14px; font-family:'Rajdhani';">(0%) Loading Assets...</p> 
+    </div>
+
+    <div id="busted-screen">
+        <div id="busted-text">BUSTED</div>
+        <p style="color:white; font-family:'Orbitron'; font-size:20px; margin-top:20px;">POLICE CAUGHT YOU</p>
+        <button id="busted-restart-btn" onclick="location.reload()">RESTART SYSTEM</button>
     </div>
 
     <div id="shop-page" class="menu-page">
@@ -349,7 +390,7 @@
         <h2>GAME SETTINGS</h2>
         <p>Audio is enabled by default.</p>
         <p>Touch controls are enabled on mobile devices.</p>
-        <div class="detail-line" style="text-align:center;"><strong>VERSION:</strong> 1.1 (UPDATED)</div>
+        <div class="detail-line" style="text-align:center;"><strong>VERSION:</strong> 1.2 (POLICE UPDATE)</div>
     </div>
 
     <div id="info-page" class="menu-page">
@@ -360,7 +401,7 @@
             <div class="detail-line"><strong>EMAIL</strong> z03640940@gmail.com</div>
             <div class="detail-line"><strong>GAME NAME:</strong> OPEN WORLD HYPER DRIVE</div>
             <div class="detail-line"><strong>ENGINE:</strong> HTML5 (THREE.js + CANNON.js)</div>
-            <div class="detail-line"><strong>VERSION</strong> V 1.1</div>
+            <div class="detail-line"><strong>VERSION</strong> V 1.2</div>
         </div>
     </div>
 
@@ -382,6 +423,7 @@
         </div>
 
         <div class="splash-footer">
+            <button id="police-mode-btn" onclick="startPoliceMode()">POLICE CHASE</button>
             <button id="delivery-mode-btn" onclick="startDeliveryMode()">DELIVERY MODE</button>
             <button id="start-button" onclick="enterGame()">FREEROAM</button>
         </div>
@@ -423,6 +465,11 @@
             <div class="mission-detail">TIME LEFT: <span id="delivery-timer-value">--:--</span></div>
         </div>
 
+        <div id="police-hud">
+            <div id="police-alert">POLICE INBOUND</div>
+            <div id="police-timer">T-MINUS 10s</div>
+        </div>
+
         <div id="drift-bonus">DRIFT BONUS! +10</div>
 
         <div class="hud-bottom">
@@ -461,14 +508,14 @@
 
     <script>
     // =============================================================================
-    // ** GAME DATA & PERSISTENCE (NEW) **
+    // ** GAME DATA & PERSISTENCE **
     // =============================================================================
     let gameData = {
         coins: 0,
         upgrades: {
-            engine: 0, // 0 = standard, 1 = turbo
-            gold: 0,   // 0 = standard, 1 = 2x
-            paint: 0   // 0 = standard, 1 = red
+            engine: 0,
+            gold: 0,
+            paint: 0
         }
     };
 
@@ -477,9 +524,7 @@
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
-                // Merge with default to handle new fields in future updates
                 gameData = { ...gameData, ...parsed };
-                // Also merge nested objects safely
                 if(parsed.upgrades) gameData.upgrades = { ...gameData.upgrades, ...parsed.upgrades };
             } catch(e) { console.error("Save file corrupt, resetting."); }
         }
@@ -496,7 +541,6 @@
         document.getElementById('coin-count').textContent = gameData.coins;
         document.getElementById('shop-coin-display').textContent = gameData.coins;
         
-        // Update Shop Buttons
         updateShopItemState('item-engine', gameData.upgrades.engine > 0);
         updateShopItemState('item-gold', gameData.upgrades.gold > 0);
         updateShopItemState('item-paint', gameData.upgrades.paint > 0);
@@ -513,7 +557,7 @@
     }
 
     // =============================================================================
-    // ** SHOP LOGIC (NEW) **
+    // ** SHOP LOGIC **
     // =============================================================================
     window.buyUpgrade = function(type, cost) {
         if (gameData.coins >= cost) {
@@ -532,7 +576,7 @@
     }
 
     // =============================================================================
-    // ** AUDIO SYSTEM (NEW - No External Files) **
+    // ** AUDIO SYSTEM **
     // =============================================================================
     let audioCtx;
     let engineOsc, engineGain;
@@ -544,7 +588,6 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
             
-            // Engine Sound (Sawtooth wave for grit)
             engineOsc = audioCtx.createOscillator();
             engineOsc.type = 'sawtooth';
             engineOsc.frequency.value = 100;
@@ -552,7 +595,6 @@
             engineGain = audioCtx.createGain();
             engineGain.gain.value = 0;
             
-            // Lowpass filter to muffle it
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.value = 400;
@@ -575,7 +617,6 @@
         const targetFreq = minFreq + (speedFactor * (maxFreq - minFreq));
         engineOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.1);
         
-        // Volume logic
         let targetVol = 0.05 + (speedFactor * 0.1);
         if(isGas) targetVol += 0.05;
         engineGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.1);
@@ -597,6 +638,23 @@
         osc.stop(audioCtx.currentTime + 0.3);
     }
 
+    function playSirenSound() {
+        // Simple synth siren for police
+        if(!audioEnabled) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
+        osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 1.0);
+        
+        gain.gain.value = 0.05;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.0);
+    }
+
     // =============================================================================
     // ** CORE VARIABLES **
     // =============================================================================
@@ -615,14 +673,12 @@
     const dayHemiSky = new THREE.Color(0xffffff);
     const dayHemiGround = new THREE.Color(0x3b4c5a);
 
-    // Physics parameters (Modified by upgrades)
     let baseEngineForce = 9000; 
     let maxEngineForce = 9000; 
     const brakeForce = 40;
     const maxSteerVal = 0.7;
     const VISUAL_Y_OFFSET = -0.9; 
 
-    // ** Initial Vehicle Position **
     const initialCarPosition = new CANNON.Vec3(-3320, 1, -20);
 
     let staticBodies = [];
@@ -666,11 +722,10 @@
     const COIN_SPAWN_RADIUS = 1500; 
     const COIN_HEIGHT = 0.7;
 
-    // Drift Vars
     let driftScore = 0;
     let isDrifting = false;
 
-    // ** Predefined Delivery Points **
+    // ** Delivery Vars **
     const DELIVERY_POINTS = [
         { name: "Sandiago's house", x: 94, y: 1.0, z: 20 },
         { name: "West Dock", x: -500, y: 1.0, z: 300 },
@@ -683,29 +738,28 @@
         { name: "Zhanyi's house", x: -2200, y: 3.0, z: 400 }, 
     ];
 
-    // ** Delivery Mode Variables **
     let isDeliveryModeActive = false;
     const MAX_MISSION_TIME = 240; 
     const TARGET_RADIUS = 5; 
-    let currentMission = {
-        status: 'none', 
-        pickupPoint: null, 
-        deliveryTarget: null, 
-        timeStarted: 0,
-        timeLimit: 0,
-        pickupMesh: null, 
-        deliveryMesh: null, 
-        pickupName: '',
-        deliveryName: '',
-    };
+    let currentMission = { status: 'none', pickupPoint: null, deliveryTarget: null, timeStarted: 0, timeLimit: 0, pickupMesh: null, deliveryMesh: null };
     
+    // ** POLICE MODE VARIABLES (NEW) **
+    let isPoliceModeActive = false;
+    let policeSpawnTime = 0;
+    let policeActive = false;
+    let policeVehicle = null;
+    let policeChassis = null;
+    let policeMesh = null;
+    let policeWheelMeshes = [];
+    let policeLight = null;
+    let policeSirenTimer = 0;
+    const POLICE_DELAY = 10000; // 10 seconds
+
     // =============================================================================
     // ** INTERACTION **
     // =============================================================================
     document.addEventListener('mousedown', (e) => {
-        // Init audio on first interaction
         if(!audioCtx) initAudio(); 
-
         if (!isGameRunning) {
             isDragging = true;
             previousMouseX = e.clientX;
@@ -728,12 +782,11 @@
         }
     });
 
-    // Touch controls setup
     function setupMobileControls() {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         if(isMobile) {
             document.getElementById('mobile-controls').style.display = 'block';
-            document.getElementById('control-hints').style.display = 'none'; // Hide keyboard hints on mobile
+            document.getElementById('control-hints').style.display = 'none'; 
             
             const bindBtn = (id, key) => {
                 const btn = document.getElementById(id);
@@ -777,17 +830,12 @@
     // =============================================================================
     // ** DELIVERY MODE CORE LOGIC **
     // =============================================================================
-
     window.startDeliveryMode = function() {
-        if (!chassisBody) {
-            alert("Please wait for assets to load or enter the game first."); 
-            return;
-        }
+        if (!chassisBody) { alert("Loading assets..."); return; }
         if (!isGameRunning) enterGame();
-
         isDeliveryModeActive = true;
+        isPoliceModeActive = false; // Disable police
         deliveryHudEl.style.display = 'block';
-
         respawnCar();
         generateNewMission();
     }
@@ -865,7 +913,7 @@
             missionStatusEl.style.color = '#00FF00';
             currentMission.pickupMesh.visible = false;
             currentMission.deliveryMesh.visible = true;
-            playCoinSound(); // Audio feedback
+            playCoinSound(); 
 
         } else if (currentMission.status === 'delivering' && otherBody === currentMission.deliveryTarget) {
             completeMission(true);
@@ -882,7 +930,6 @@
             const timeBonus = Math.max(0, currentMission.timeLimit - timeElapsed);
             reward += Math.floor(timeBonus * 2); 
             
-            // Apply Gold Upgrade
             if(gameData.upgrades.gold > 0) reward *= 2;
 
             gameData.coins += reward;
@@ -906,7 +953,6 @@
         if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
         currentMission.status = 'completed';
     }
-
 
     function updateDeliveryMode() {
         if (!isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') return;
@@ -938,6 +984,245 @@
         }
     }
     
+    // =============================================================================
+    // ** POLICE MODE LOGIC (NEW) **
+    // =============================================================================
+    window.startPoliceMode = function() {
+        if (!chassisBody) { alert("Loading assets..."); return; }
+        if (!isGameRunning) enterGame();
+        
+        isDeliveryModeActive = false;
+        isPoliceModeActive = true;
+        policeActive = false;
+        policeSpawnTime = performance.now() + POLICE_DELAY;
+
+        document.getElementById('police-hud').style.display = 'block';
+        document.getElementById('police-alert').innerText = "POLICE INBOUND";
+        document.getElementById('police-alert').style.color = "#FFD700"; // Warn color
+        
+        if(deliveryHudEl) deliveryHudEl.style.display = 'none';
+        respawnCar();
+    }
+
+    function createPoliceVehicle() {
+        if(policeChassis) return; // Already created
+
+        const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
+        policeChassis = new CANNON.Body({
+            mass: 3000, // Heavier than player
+            shape: chassisShape
+        });
+        policeChassis.angularDamping = 0.9;
+        policeChassis.linearDamping = 0.05;
+
+        policeVehicle = new CANNON.RaycastVehicle({
+            chassisBody: policeChassis,
+            indexRightAxis: 0, indexUpAxis: 1, indexForwardAxis: 2
+        });
+
+        const axleWidth = 1.0;
+        const wheelBase = 1.5;
+        function makeWheelOptions(x,y,z) {
+            return {
+                radius: 0.5, directionLocal: new CANNON.Vec3(0, -1, 0),
+                suspensionStiffness: 150, suspensionRestLength: 0.3,
+                frictionSlip: 4.0, dampingRelaxation: 8.0, dampingCompression: 10.0,
+                maxSuspensionForce: 100000, rollInfluence: 0.05,
+                axleLocal: new CANNON.Vec3(1, 0, 0),
+                chassisConnectionPointLocal: new CANNON.Vec3(x, -0.3, z)
+            };
+        }
+
+        policeVehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase));
+        policeVehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase));
+        policeVehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase));
+        policeVehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase));
+
+        // Create Mesh
+        if(carMesh) {
+            policeMesh = carMesh.clone();
+            // Dark Police Material
+            policeMesh.traverse((node) => { 
+                if (node.isMesh) {
+                    node.material = node.material.clone();
+                    // Make it black/dark blue
+                    node.material.color.setHex(0x050522); 
+                } 
+            });
+
+            // Add Siren Lights
+            const barGeo = new THREE.BoxGeometry(1.2, 0.15, 0.3);
+            const barMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+            const lightBar = new THREE.Mesh(barGeo, barMat);
+            lightBar.position.set(0, 0.8, 0.5); // On roof
+            
+            const redGeo = new THREE.BoxGeometry(0.4, 0.16, 0.31);
+            const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const redLight = new THREE.Mesh(redGeo, redMat);
+            redLight.position.x = -0.35;
+            
+            const blueMat = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+            const blueLight = new THREE.Mesh(redGeo, blueMat);
+            blueLight.position.x = 0.35;
+
+            lightBar.add(redLight);
+            lightBar.add(blueLight);
+            policeMesh.add(lightBar);
+            
+            policeLight = { red: redLight, blue: blueLight, state: 0 };
+            scene.add(policeMesh);
+        } else {
+            // Fallback box
+            const boxGeo = new THREE.BoxGeometry(2,1,4);
+            const boxMat = new THREE.MeshBasicMaterial({color:0x0000FF});
+            policeMesh = new THREE.Mesh(boxGeo, boxMat);
+            scene.add(policeMesh);
+        }
+        
+        // Wheels
+        policeWheelMeshes = [];
+        const cylGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
+        cylGeo.rotateZ(Math.PI/2);
+        const wheelMat = new THREE.MeshStandardMaterial({color:0x111111});
+        for(let i=0; i<4; i++){
+            let m = new THREE.Mesh(cylGeo, wheelMat);
+            scene.add(m);
+            policeWheelMeshes.push(m);
+        }
+    }
+
+    function spawnPolice() {
+        if(!policeChassis) createPoliceVehicle();
+        
+        // Spawn behind player but close
+        const playerPos = chassisBody.position;
+        const playerDir = new THREE.Vector3(0,0,1).applyQuaternion(chassisBody.quaternion);
+        
+        // -50 units behind player
+        const spawnPos = new CANNON.Vec3(
+            playerPos.x - (playerDir.x * 50),
+            playerPos.y + 2,
+            playerPos.z - (playerDir.z * 50)
+        );
+
+        policeChassis.position.copy(spawnPos);
+        policeChassis.velocity.set(0,0,0);
+        policeChassis.quaternion.copy(chassisBody.quaternion); // Face same way
+        
+        world.addBody(policeChassis);
+        policeVehicle.addToWorld(world);
+        
+        policeMesh.visible = true;
+        policeWheelMeshes.forEach(m => m.visible=true);
+        policeActive = true;
+        
+        document.getElementById('police-alert').innerText = "POLICE CHASE IN PROGRESS";
+        document.getElementById('police-alert').style.color = "#FF0000";
+
+        // Add collision listener for Game Over
+        policeChassis.addEventListener('collide', (e) => {
+            if(e.body === chassisBody) {
+                // Check relative velocity impact
+                const impact = e.contact.getImpactVelocityAlongNormal();
+                if(Math.abs(impact) > 5) {
+                    gameOverPolice();
+                }
+            }
+        });
+    }
+
+    function updatePoliceAI() {
+        if(!policeActive || !policeChassis) return;
+
+        const playerPos = chassisBody.position;
+        const policePos = policeChassis.position;
+        
+        // 1. Steering Logic
+        // Vector to player
+        const targetVec = new CANNON.Vec3(playerPos.x - policePos.x, 0, playerPos.z - policePos.z);
+        // Police forward vector (local Z)
+        const policeQuat = new THREE.Quaternion(policeChassis.quaternion.x, policeChassis.quaternion.y, policeChassis.quaternion.z, policeChassis.quaternion.w);
+        const forward = new THREE.Vector3(0,0,1).applyQuaternion(policeQuat);
+        const targetThree = new THREE.Vector3(targetVec.x, 0, targetVec.z).normalize();
+        
+        // Determine angle
+        let angle = forward.angleTo(targetThree);
+        // Determine left or right via cross product
+        const cross = new THREE.Vector3().crossVectors(forward, targetThree);
+        if(cross.y > 0) angle = -angle;
+        
+        // Clamp steering
+        let steer = angle;
+        if(steer > 0.5) steer = 0.5;
+        if(steer < -0.5) steer = -0.5;
+
+        // 2. Engine Logic
+        const dist = playerPos.distanceTo(policePos);
+        let force = 0;
+        let brake = 0;
+        
+        // If car flips, reset
+        const up = new THREE.Vector3(0,1,0).applyQuaternion(policeQuat);
+        if(up.y < 0.2) {
+             policeChassis.position.y += 2;
+             policeChassis.quaternion.set(0,0,0,1);
+             policeChassis.velocity.set(0,0,0);
+             policeChassis.angularVelocity.set(0,0,0);
+        }
+
+        if(dist > 10) {
+            force = -12000; // Full gas (Negative is forward in this setup sometimes, depends on axis)
+            // Wait, player setup: keyW = -maxEngineForce. So negative is forward.
+        } else {
+             // Ramming speed
+             force = -15000;
+        }
+
+        // 3. Apply Controls
+        policeVehicle.setSteeringValue(steer, 0);
+        policeVehicle.setSteeringValue(steer, 1);
+        policeVehicle.applyEngineForce(force, 0);
+        policeVehicle.applyEngineForce(force, 1);
+        policeVehicle.applyEngineForce(force, 2);
+        policeVehicle.applyEngineForce(force, 3);
+        
+        // 4. Update Visuals
+        for(let i=0; i<policeVehicle.wheelInfos.length; i++){
+            policeVehicle.updateWheelTransform(i);
+            let t = policeVehicle.wheelInfos[i].worldTransform;
+            if(policeWheelMeshes[i]) {
+                policeWheelMeshes[i].position.copy(t.position);
+                policeWheelMeshes[i].quaternion.copy(t.quaternion);
+            }
+        }
+        if(policeMesh) {
+            policeMesh.position.copy(policeChassis.position);
+            policeMesh.quaternion.copy(policeChassis.quaternion);
+            policeMesh.position.y += VISUAL_Y_OFFSET;
+            
+            // Siren Flash
+            if(policeLight) {
+                policeSirenTimer++;
+                if(policeSirenTimer > 10) {
+                    policeSirenTimer = 0;
+                    policeLight.state = !policeLight.state;
+                    policeLight.red.material.color.setHex(policeLight.state ? 0xff0000 : 0x330000);
+                    policeLight.blue.material.color.setHex(!policeLight.state ? 0x0000ff : 0x000033);
+                }
+            }
+        }
+        
+        // Audio
+        if(Math.random() < 0.01) playSirenSound();
+    }
+
+    function gameOverPolice() {
+        isGameRunning = false;
+        document.getElementById('busted-screen').style.display = 'flex';
+        // Stop physics loops by setting flag
+    }
+
+
     // =============================================================================
     // ** THREE.js/Cannon.js SETUP **
     // =============================================================================
@@ -1063,18 +1348,15 @@
     }
 
     function applyUpgrades() {
-        // Apply engine upgrade
         if (gameData.upgrades.engine > 0) {
-            maxEngineForce = baseEngineForce * 1.5; // 50% Speed Boost
+            maxEngineForce = baseEngineForce * 1.5; 
         } else {
             maxEngineForce = baseEngineForce;
         }
 
-        // Apply Paint upgrade
         if (gameData.upgrades.paint > 0 && carMesh) {
              carMesh.traverse((node) => { 
                 if (node.isMesh && node.material && node.material.name !== 'Glass') {
-                     // Simple tinting for purchased car
                      node.material.color.setHex(0xFF0044);
                 } 
             });
@@ -1117,7 +1399,7 @@
                 loadingScreen.style.display = 'none';
                 document.getElementById('splash').style.display = 'block'; 
                 document.getElementById('splash').style.opacity = '1';
-                applyUpgrades(); // Apply any saved visuals
+                applyUpgrades(); 
             }, 500);
 
             initVehicle();
@@ -1320,29 +1602,26 @@
         const v = chassisBody.velocity;
         const forwardSpeed = v.length() * 3.6; 
         
-        // Update Audio Pitch
         updateEngineSound(forwardSpeed, inputState.keyW);
 
-        // Drift Detection Logic
         const chassisQuaternion = new THREE.Quaternion(chassisBody.quaternion.x, chassisBody.quaternion.y, chassisBody.quaternion.z, chassisBody.quaternion.w);
         const forwardVector = new THREE.Vector3(0, 0, 1).applyQuaternion(chassisQuaternion);
         const velocityVector = new THREE.Vector3(v.x, v.y, v.z);
-        velocityVector.y = 0; // Ignore vertical movement
+        velocityVector.y = 0; 
         velocityVector.normalize();
         
         const driftAngle = Math.abs(forwardVector.angleTo(velocityVector));
-        const minDriftAngle = 0.3; // Radians (~17 degrees)
+        const minDriftAngle = 0.3; 
 
         if (forwardSpeed > 30 && driftAngle > minDriftAngle && (inputState.keyA || inputState.keyD || inputState.keySpace)) {
             if (!isDrifting) {
                 isDrifting = true;
                 driftBonusEl.style.display = 'block';
             }
-            // Add coins periodically while drifting
-            if (Math.random() < 0.05) { // Occasional reward
+            if (Math.random() < 0.05) { 
                  const bonus = (gameData.upgrades.gold > 0) ? 2 : 1;
                  gameData.coins += bonus;
-                 saveGameData(); // Save often!
+                 saveGameData(); 
             }
         } else {
             isDrifting = false;
@@ -1440,8 +1719,18 @@
         if (engineForce !== 0) throttlePercent = Math.abs((engineForce / (maxEngineForce * 2.5)) * 100);
         throttleEl.textContent = Math.min(100, throttlePercent).toFixed(0) + '%';
         
-        // Ensure coin display is synced
         coinCountEl.textContent = gameData.coins;
+
+        // ** Police Timer HUD update **
+        if(isPoliceModeActive && !policeActive) {
+            let timeLeft = (policeSpawnTime - performance.now()) / 1000;
+            if(timeLeft <= 0) {
+                spawnPolice();
+                document.getElementById('police-timer').innerText = "POLICE ACTIVE";
+            } else {
+                document.getElementById('police-timer').innerText = `SPAWN IN: ${timeLeft.toFixed(1)}s`;
+            }
+        }
     }
 
     function updateColliders() {
@@ -1460,7 +1749,6 @@
     }
 
     function loadCoinPrototype(callback) {
-        // Just load the mesh, data is handled by loadGameData()
         const coinLoader = new THREE.GLTFLoader();
         coinLoader.load('gold_coin.glb', (gltf) => {
             coinProto = gltf.scene;
@@ -1468,7 +1756,6 @@
             if (callback) callback();
         }, undefined, (err) => {
             console.warn('gold_coin.glb fallback');
-            // Create fallback geometry if model missing
             const geo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16);
             geo.rotateX(Math.PI/2);
             const mat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1.0, roughness: 0.3 });
@@ -1520,11 +1807,10 @@
                         coinBodies.splice(bIdx, 1);
                         try { world.removeBody(coinBody); } catch (err) {}
                         
-                        // New Logic: Check multiplier
                         const multiplier = (gameData.upgrades.gold > 0) ? 2 : 1;
                         gameData.coins += (1 * multiplier);
                         saveGameData();
-                        playCoinSound(); // Audio
+                        playCoinSound(); 
                     }
                 }
             });
@@ -1537,7 +1823,9 @@
     // ** MAIN LOOP **
     // =============================================================================
     function animate(time) {
-        requestAnimationFrame(animate);
+        if(isGameRunning || !isGameRunning) requestAnimationFrame(animate); 
+        // Note: Keep loop running for renders, but logic stops on game over
+        
         if (!chassisBody || !world) return;
         
         if (isGameRunning) {
@@ -1554,11 +1842,16 @@
             
             updateControls();
             updateColliders();
+            
             if (isDeliveryModeActive) {
                 updateDeliveryMode(); 
                 updateTargetArrow(); 
             } else if (targetArrowMesh) {
                 targetArrowMesh.visible = false;
+            }
+
+            if (isPoliceModeActive) {
+                updatePoliceAI();
             }
         }
 
@@ -1596,7 +1889,7 @@
     // =============================================================================
     
     function initSystem() {
-        loadGameData(); // Load save on start
+        loadGameData(); 
         setupMobileControls();
         
         initThree();
@@ -1612,7 +1905,7 @@
     }
 
     window.enterGame = function() { 
-        if(!audioCtx) initAudio(); // Try to start audio on click
+        if(!audioCtx) initAudio(); 
         document.getElementById('splash').style.opacity = '0';
         setTimeout(() => {
             document.getElementById('splash').style.display = 'none';
@@ -1620,6 +1913,7 @@
         }, 500);
         
         isGameRunning = true; 
+        isPoliceModeActive = false; // Reset modes
         if(isDeliveryModeActive) deliveryHudEl.style.display = 'block';
     }
 
