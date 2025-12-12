@@ -1042,6 +1042,8 @@
         // Create Mesh
         if(carMesh) {
             policeMesh = carMesh.clone();
+            // policeMesh inherits carMesh's scale (104.7, 104.7, 104.7)
+            
             // Dark Police Material
             policeMesh.traverse((node) => { 
                 if (node.isMesh) {
@@ -1051,20 +1053,31 @@
                 } 
             });
 
-            // Add Siren Lights
-            const barGeo = new THREE.BoxGeometry(1.2, 0.15, 0.3);
+            // Add Siren Lights (REVISED SIZE AND POSITION)
+            // Note: Position is relative to the scaled carMesh. Since carMesh is scaled ~100x, we need tiny lights
+            const SCALE_FACTOR = 1 / 104.7; // Approx 0.00955
+            
+            // Light Bar Geometry (Small and thin for the roof)
+            const barGeo = new THREE.BoxGeometry(0.8 * SCALE_FACTOR, 0.1 * SCALE_FACTOR, 0.2 * SCALE_FACTOR);
             const barMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
             const lightBar = new THREE.Mesh(barGeo, barMat);
-            lightBar.position.set(0, 0.8, 0.5); // On roof
             
-            const redGeo = new THREE.BoxGeometry(0.4, 0.16, 0.31);
+            // Position: ~0.8m above car base in scaled units (0.8 * 104.7)
+            // The car's height is roughly 1m (chassis 0.5m box + tires). 
+            // Setting position relative to the THREE car model's local coordinate system (which is scaled).
+            // A good position on the roof would be around Z=0, Y=0.01 relative to the car's local origin.
+            lightBar.position.set(0, 0.010, 0); // Y position is critical. 0.010 is visually on the roof of the scaled model.
+            
+            // Red and Blue Lights
+            const lightGeo = new THREE.BoxGeometry(0.3 * SCALE_FACTOR, 0.11 * SCALE_FACTOR, 0.21 * SCALE_FACTOR);
+            
             const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const redLight = new THREE.Mesh(redGeo, redMat);
-            redLight.position.x = -0.35;
+            const redLight = new THREE.Mesh(lightGeo, redMat);
+            redLight.position.x = -0.0035; // X position, close to center
             
             const blueMat = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-            const blueLight = new THREE.Mesh(redGeo, blueMat);
-            blueLight.position.x = 0.35;
+            const blueLight = new THREE.Mesh(lightGeo, blueMat);
+            blueLight.position.x = 0.0035;
 
             lightBar.add(redLight);
             lightBar.add(blueLight);
@@ -1151,8 +1164,10 @@
 
         const playerPos = chassisBody.position;
         const policePos = policeChassis.position;
+        const dist = playerPos.distanceTo(policePos);
+        const policeSpeed = policeChassis.velocity.length() * 3.6; // KM/H
         
-        // 1. Steering Logic
+        // 1. Steering Logic (Same as before)
         const targetVec = new CANNON.Vec3(playerPos.x - policePos.x, 0, playerPos.z - policePos.z);
         const policeQuat = new THREE.Quaternion(policeChassis.quaternion.x, policeChassis.quaternion.y, policeChassis.quaternion.z, policeChassis.quaternion.w);
         const forward = new THREE.Vector3(0,0,1).applyQuaternion(policeQuat);
@@ -1163,14 +1178,36 @@
         if(cross.y > 0) angle = -angle;
         
         let steer = angle * 2.5; // Aggressive steering
-        if(steer > 0.7) steer = 0.7;
-        if(steer < -0.7) steer = -0.7;
+        if(steer > maxSteerVal) steer = maxSteerVal;
+        if(steer < -maxSteerVal) steer = -maxSteerVal;
 
-        // 2. Engine Logic
-        const dist = playerPos.distanceTo(policePos);
+        // 2. Engine Force Logic (IMPROVED)
         let force = 0;
+        let brakeForce = 0;
         
-        // Self-righting mechanism: If car flips, reset (prevents police from being stuck upside down)
+        const MAX_POLICE_FORCE = 20000;
+        const CLOSE_RANGE_FORCE = 5000;
+
+        if(dist > 70) { // Far away: Full throttle
+            force = -MAX_POLICE_FORCE; 
+        } else if (dist > 15) { // Mid range: Moderate throttle
+            force = -MAX_POLICE_FORCE * 0.7;
+        } else { // Close range (< 15m): Low throttle to match player
+            force = -CLOSE_RANGE_FORCE; 
+            
+            // If police car is too fast right next to player, brake
+            if (policeSpeed > 50) { 
+                brakeForce = MAX_POLICE_FORCE * 0.5;
+            }
+            
+            // If player is directly behind police (dist is small, but police has moved past)
+            if (policeSpeed < 10 && dist > 10) { 
+                 // If police is stuck, full reverse/forward to escape
+                 force = -MAX_POLICE_FORCE; 
+            }
+        }
+
+        // 3. Self-righting mechanism: 
         const up = new THREE.Vector3(0,1,0).applyQuaternion(policeQuat);
         if(up.y < 0.2) {
              policeChassis.position.y += 2;
@@ -1179,18 +1216,30 @@
              policeChassis.angularVelocity.set(0,0,0);
         }
 
-        // Apply constant forward force (negative is forward)
-        force = -15000; 
-
-        // 3. Apply Controls
+        // 4. Apply Controls
         policeVehicle.setSteeringValue(steer, 0);
         policeVehicle.setSteeringValue(steer, 1);
+        
+        // Set all engine forces and remove any old brake forces first
+        policeVehicle.applyEngineForce(0, 0); policeVehicle.applyEngineForce(0, 1);
+        policeVehicle.applyEngineForce(0, 2); policeVehicle.applyEngineForce(0, 3);
+        policeVehicle.setBrake(0, 0); policeVehicle.setBrake(0, 1);
+        policeVehicle.setBrake(0, 2); policeVehicle.setBrake(0, 3);
+
+        // Apply new engine force
         policeVehicle.applyEngineForce(force, 0);
         policeVehicle.applyEngineForce(force, 1);
         policeVehicle.applyEngineForce(force, 2);
         policeVehicle.applyEngineForce(force, 3);
         
-        // 4. Update Visuals (Synchronization)
+        // Apply braking to all wheels
+        policeVehicle.setBrake(brakeForce, 0);
+        policeVehicle.setBrake(brakeForce, 1);
+        policeVehicle.setBrake(brakeForce, 2);
+        policeVehicle.setBrake(brakeForce, 3);
+
+        
+        // 5. Update Visuals (Synchronization)
         for(let i=0; i<policeVehicle.wheelInfos.length; i++){
             policeVehicle.updateWheelTransform(i);
             let t = policeVehicle.wheelInfos[i].worldTransform;
