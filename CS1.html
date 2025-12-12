@@ -1166,7 +1166,9 @@
         });
     }
 
- function updatePoliceAI() {
+ // 假设您已在全局作用域定义了：let policeCurrentSteer = 0; 
+
+function updatePoliceAI() {
     // 检查警察是否激活和底盘是否存在
     if(!policeActive || !policeChassis) return;
 
@@ -1208,7 +1210,10 @@
 
     // 平滑转向过渡 (Lerp)
     const LERP_RATE = 0.15; // 转向平滑率
-    let currentSteer = policeVehicle.getSteeringValue(0); 
+    
+    // *** 修正点：使用外部跟踪变量代替 policeVehicle.getSteeringValue(0) ***
+    let currentSteer = policeCurrentSteer; // 获取上一帧的转向值
+    
     let steer = currentSteer + (targetSteer - currentSteer) * LERP_RATE;
 
     // 速度依赖的转向极限 (高速时限制最大转向角)
@@ -1294,6 +1299,9 @@
     policeVehicle.setSteeringValue(steer, 0);
     policeVehicle.setSteeringValue(steer, 1);
     
+    // *** 修正点：将当前转向值存储到外部变量中，供下一帧使用 ***
+    policeCurrentSteer = steer;
+
     // 重置所有引擎力和刹车力
     policeVehicle.applyEngineForce(0, 0); policeVehicle.applyEngineForce(0, 1);
     policeVehicle.applyEngineForce(0, 2); policeVehicle.applyEngineForce(0, 3);
