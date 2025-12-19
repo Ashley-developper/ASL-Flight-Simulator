@@ -3,8 +3,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-    <title>OPEN WORLD HYPER DRIVE - POLICE CHASE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OPEN WORLD HYPER DRIVE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================================================
@@ -17,8 +17,6 @@
             font-family: 'Rajdhani', sans-serif; 
             color: #E0FFFF;
             user-select: none; 
-            -webkit-user-select: none;
-            touch-action: none; 
         }
         
         /* =========================================================================
@@ -42,6 +40,7 @@
             min-width: 120px;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
             border-radius: 4px;
+            /* Improved clipping for a sci-fi look */
             clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 100%, 0 100%);
         }
         
@@ -83,7 +82,7 @@
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
             border-radius: 4px;
             min-width: 250px;
-            display: none; 
+            display: none; /* Initial hidden */
         }
         #delivery-hud .mission-title { 
             font-family: 'Orbitron', sans-serif; font-size: 14px; color: #00FF00; 
@@ -93,37 +92,6 @@
         #delivery-hud .mission-detail { font-size: 16px; color: #E0FFE0; margin-bottom: 5px; }
         #delivery-distance-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFFFFF; }
         #delivery-timer-value { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; color: #FFD700; }
-
-        /* ** Police HUD Style ** */
-        #police-hud {
-            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-            text-align: center; display: none;
-        }
-        #police-alert {
-            font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
-            color: #FF0000; text-shadow: 0 0 15px red; letter-spacing: 3px;
-            animation: blinkRed 0.5s infinite alternate;
-        }
-        #police-timer {
-            font-family: 'Orbitron'; font-size: 20px; color: #fff; margin-top: 5px;
-        }
-        @keyframes blinkRed { from { opacity: 1; } to { opacity: 0.3; } }
-
-        /* ** BUSTED SCREEN ** */
-        #busted-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 50, 0.8); z-index: 2000; display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-        }
-        #busted-text {
-            font-family: 'Orbitron'; font-size: 100px; color: #FF0000; font-weight: 900;
-            text-shadow: 0 0 30px #FF0000; transform: rotate(-10deg); border: 5px solid red;
-            padding: 10px 40px; letter-spacing: 10px;
-        }
-        #busted-restart-btn {
-            margin-top: 50px; padding: 20px 60px; font-size: 24px; font-family: 'Orbitron';
-            background: white; border: none; cursor: pointer; font-weight: bold;
-        }
 
         #control-hints {
             position: absolute; bottom: 30px; left: 30px;
@@ -139,43 +107,19 @@
         .copyright-tag { position: fixed; bottom: 15px; right: 15px; font-size: 12px; color: rgba(255, 255, 255, 0.3); z-index: 10; }
 
         /* =========================================================================
-         * MOBILE CONTROLS
-         * ========================================================================= */
-        #mobile-controls {
-            display: none; 
-            position: absolute; bottom: 20px; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 20;
-        }
-        .touch-btn {
-            position: absolute; pointer-events: auto;
-            background: rgba(0, 255, 255, 0.15); border: 2px solid rgba(0, 255, 255, 0.5);
-            border-radius: 50%; width: 80px; height: 80px;
-            backdrop-filter: blur(4px); touch-action: none;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .touch-btn:active { background: rgba(0, 255, 255, 0.5); }
-        .touch-btn svg { width: 40px; height: 40px; fill: #fff; }
-        
-        #btn-left { bottom: 30px; left: 30px; }
-        #btn-right { bottom: 30px; left: 130px; }
-        #btn-brake { bottom: 30px; right: 140px; width: 60px; height: 60px; border-color: #ff0055; background: rgba(255, 0, 85, 0.2); }
-        #btn-gas { bottom: 40px; right: 30px; width: 90px; height: 90px; border-color: #00ff00; background: rgba(0, 255, 0, 0.2); }
-        #btn-respawn-mob { top: 100px; right: 20px; width: 50px; height: 50px; border-radius: 8px; font-family: 'Orbitron'; font-weight: bold; color: yellow; border-color: yellow;}
-        #btn-camera-mob { top: 100px; left: 20px; width: 50px; height: 50px; border-radius: 8px; font-family: 'Orbitron'; font-weight: bold; color: cyan; }
-
-        /* =========================================================================
          * SPLASH / MAIN MENU UI
          * ========================================================================= */
         #splash {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.8) 100%);
             z-index: 999;
-            display: none; 
+            display: none; /* Initial hidden */
             cursor: grab;
-            transition: opacity 0.5s; 
+            transition: opacity 0.5s; /* UX: Smooth transition when fading out */
         }
         #splash:active { cursor: grabbing; }
 
+        /* Title Area */
         .splash-header {
             position: absolute; top: 60px; left: 0; width: 100%;
             text-align: center; pointer-events: none;
@@ -185,6 +129,7 @@
             letter-spacing: 12px; text-transform: uppercase;
             background: linear-gradient(to right, #00FFFF, #FFFFFF, #FF00FF);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            /* UX: More vibrant shadow */
             text-shadow: 0 0 35px rgba(0, 255, 255, 0.7), 0 0 5px rgba(255, 255, 255, 0.5);
         }
         .splash-subtitle {
@@ -192,6 +137,7 @@
             letter-spacing: 6px; margin-top: 10px; font-weight: 600;
         }
 
+        /* Top Right Coin Display */
         .splash-top-right {
             position: absolute; top: 40px; right: 40px;
             text-align: right; pointer-events: none;
@@ -199,12 +145,11 @@
         .splash-top-right .label { font-size: 12px; color: #FFD700; text-shadow: 0 0 10px #FFD700; margin-bottom: 5px;}
         .splash-top-right .value { font-size: 42px; color: #FFD700; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
 
+        /* Left Menu Buttons (SHOP, SETTINGS, INFO) */
         .splash-left-menu {
             position: absolute; top: 50%; left: 40px;
             transform: translateY(-50%);
             display: flex; flex-direction: column; gap: 20px;
-            pointer-events: auto; 
-            z-index: 1000;
         }
         .menu-btn {
             font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700;
@@ -220,24 +165,28 @@
             box-shadow: 0 0 15px rgba(0,255,255,0.3);
         }
 
+        /* Bottom Button Area */
         .splash-footer {
             position: absolute; bottom: 60px; right: 60px;
             display: flex; gap: 20px; align-items: flex-end;
-            pointer-events: none; 
+            pointer-events: none; /* Container penetration */
         }
         
+        /* Universal Footer Button Style */
         .splash-footer button { pointer-events: auto; font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s; }
 
         #start-button {
             padding: 20px 80px; font-size: 24px; font-weight: 900;
             color: #000000; background: #00FFFF; border: none;
             letter-spacing: 4px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+            /* UX: More aggressive clip-path for a sharper look */
             clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
         }
         #start-button:hover {
             background: #FF00FF; box-shadow: 0 0 50px rgba(255, 0, 255, 0.8); color: #fff; transform: scale(1.05);
         }
 
+        /* Delivery Button */
         #delivery-mode-btn { 
             padding: 15px 40px; font-size: 16px; font-weight: 700;
             color: #00FFFF; background: rgba(0, 20, 40, 0.8);
@@ -248,16 +197,6 @@
             background: rgba(0, 255, 255, 0.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
         }
 
-        #police-mode-btn { 
-            padding: 15px 40px; font-size: 16px; font-weight: 700;
-            color: #FF0055; background: rgba(40, 0, 0, 0.8);
-            border: 1px solid #FF0055; letter-spacing: 2px;
-            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 20%);
-        }
-        #police-mode-btn:hover {
-            background: rgba(255, 0, 85, 0.2); box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
-        }
-
         /* Loading Screen */
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -266,29 +205,29 @@
             transition: opacity 0.5s;
         }
         #loading-progress-bar { width: 400px; height: 5px; background: #222; margin-top: 20px; border-radius: 2px; overflow: hidden; }
-        #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; transition: width 0.3s; }
+        #loading-progress-fill { height: 100%; width: 0%; background: #00FFFF; box-shadow: 0 0 10px #00FFFF; transition: width 0.3s; } /* UX: Smooth progress bar fill */
 
         /* =========================================================================
-         * New Menu Pages
+         * New Menu Pages (Shop, Settings, Info)
          * ========================================================================= */
         .menu-page {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.95); /* UX: Slightly darker overlay */
             z-index: 9999;
-            display: none; 
+            display: none; /* Initial hidden */
             align-items: center; justify-content: center;
             flex-direction: column;
             padding: 40px;
             box-sizing: border-box;
-            backdrop-filter: blur(8px);
-            opacity: 0;
+            backdrop-filter: blur(8px); /* UX: Increased blur */
+            opacity: 0; /* UX: Fade-in animation setup */
             transition: opacity 0.4s;
         }
-        .menu-page.active { opacity: 1; display: flex; }
+        .menu-page.active { opacity: 1; display: flex; } /* UX: Use active class for visibility */
         .menu-page h2 {
             font-family: 'Orbitron', sans-serif; font-size: 48px; color: #FF00FF;
             text-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
-            margin-bottom: 20px;
+            margin-bottom: 40px;
             text-transform: uppercase;
         }
         .menu-page p {
@@ -307,37 +246,13 @@
         #menu-close-btn {
             position: absolute; top: 40px; right: 40px;
             background: #FF00FF; color: #000; border: none;
-            padding: 12px 25px; 
+            padding: 12px 25px; /* UX: Larger close button */
             font-family: 'Orbitron', sans-serif;
-            font-weight: 70s0; cursor: pointer; transition: 0.2s;
+            font-weight: 700; cursor: pointer; transition: 0.2s;
             clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
         }
         #menu-close-btn:hover {
             background: #00FFFF; box-shadow: 0 0 15px #00FFFF; transform: scale(1.05);
-        }
-
-        .shop-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 20px;}
-        .shop-item {
-            background: rgba(0, 20, 40, 0.8); border: 1px solid #00FFFF;
-            padding: 20px; width: 220px; text-align: center;
-            display: flex; flex-direction: column; align-items: center;
-            transition: 0.3s; position: relative;
-        }
-        .shop-item:hover { transform: translateY(-5px); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
-        .shop-item h3 { margin: 0 0 10px 0; color: #FFD700; font-family: 'Orbitron'; }
-        .shop-item .price { font-size: 24px; color: #fff; font-weight: bold; margin: 10px 0; }
-        .shop-item button {
-            background: #00FFFF; border: none; padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; width: 100%;
-        }
-        .shop-item button:disabled { background: #555; color: #888; cursor: not-allowed; }
-        .shop-item.owned { border-color: #00FF00; }
-        .shop-item.owned button { background: #00FF00; color: #000; }
-
-        #drift-bonus {
-            position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
-            font-family: 'Orbitron'; font-style: italic; font-weight: 900;
-            font-size: 48px; color: #FFD700; text-shadow: 0 0 20px orange;
-            display: none; pointer-events: none; z-index: 15;
         }
 
     </style>
@@ -346,55 +261,22 @@
 
     <div id="loading-screen">
         <h2 style="margin:0; font-size:32px; color:white; font-family:'Orbitron';">SYSTEM INITIALIZING</h2>
-        <p style="font-family:'Orbitron'; letter-spacing:2px;">HYPER DRIVE</p>
+        <p style="font-family:'Orbitron'; letter-spacing:2px;">HOTWHEELS</p>
         <div id="loading-progress-bar"><div id="loading-progress-fill"></div></div>
-        <p id="loading-status" style="margin-top:10px; font-size:14px; font-family:'Rajdhani';">(0%) Loading Assets...</p> 
-    </div>
-    <div class="instrument">
-    <span class="label">Position (X,Y,Z)</span>
-    <span class="value" id="hud-coords" style="font-size: 18px;">0, 0, 0</span>
-</div>
-    <div id="busted-screen">
-        <div id="busted-text">BUSTED</div>
-        <p style="color:white; font-family:'Orbitron'; font-size:20px; margin-top:20px;">POLICE CAUGHT YOU</p>
-        <button id="busted-restart-btn" onclick="location.reload()">RESTART SYSTEM</button>
-    </div>
+        <p id="loading-status" style="margin-top:10px; font-size:14px; font-family:'Rajdhani';">(0%) Loading Assets...</p> </div>
 
     <div id="shop-page" class="menu-page">
         <button id="menu-close-btn" onclick="hideMenuPages()">MAIN MENU</button>
-        <h2>PERFORMANCE SHOP</h2>
-        <div style="text-align:center; margin-bottom:10px;">
-            <span style="color:#FFD700; font-family:'Orbitron'; font-size:24px;">YOUR GOLD: <span id="shop-coin-display">0</span></span>
-        </div>
-        <div class="shop-grid">
-            <div class="shop-item" id="item-engine">
-                <h3>TURBO ENGINE</h3>
-                <p style="font-size:14px; color:#aaa;">Increase Top Speed & Acceleration</p>
-                <div class="price">1 G</div>
-                <button onclick="buyUpgrade('engine', 1)">BUY UPGRADE</button>
-            </div>
-            <div class="shop-item" id="item-gold">
-                <h3>GOLD SCANNER</h3>
-                <p style="font-size:14px; color:#aaa;">Double all gold collected</p>
-                <div class="price">1 G</div>
-                <button onclick="buyUpgrade('gold', 1)">BUY UPGRADE</button>
-            </div>
-             <div class="shop-item" id="item-paint">
-                <h3>NEON PAINT</h3>
-                <p style="font-size:14px; color:#aaa;">Special Cyberpunk Red Skin</p>
-                <div class="price">1 G</div>
-                <button onclick="buyUpgrade('paint', 1)">UNLOCK</button>
-            </div>
-        </div>
-        <p style="margin-top:20px; font-size:14px; color:#888;">Items are saved automatically.</p>
+        <h2>SHOP & UPGRADES</h2>
+        <p style="color: #00FFFF; font-size: 24px;">COME BACK AGIN FOR FUTURE UPDATES :)</p>
+        <p>Unlock new cars, new maps, and performance upgrades in the next major patch!</p>
     </div>
 
     <div id="settings-page" class="menu-page">
         <button id="menu-close-btn" onclick="hideMenuPages()">BACK TO MENU</button>
         <h2>GAME SETTINGS</h2>
-        <p>Audio is enabled by default.</p>
-        <p>Touch controls are enabled on mobile devices.</p>
-        <div class="detail-line" style="text-align:center;"><strong>VERSION:</strong> 1.2 (POLICE UPDATE)</div>
+        <p style="color: #00FFFF; font-size: 24px;">COME BACK FOR FUTURE UPDATES :)</p>
+        <p>Configure graphics, controls, and sound options when settings are implemented.</p>
     </div>
 
     <div id="info-page" class="menu-page">
@@ -405,8 +287,11 @@
             <div class="detail-line"><strong>EMAIL</strong> z03640940@gmail.com</div>
             <div class="detail-line"><strong>GAME NAME:</strong> OPEN WORLD HYPER DRIVE</div>
             <div class="detail-line"><strong>ENGINE:</strong> HTML5 (THREE.js + CANNON.js)</div>
-            <div class="detail-line"><strong>VERSION</strong> V 1.9999</div>
+            <div class="detail-line"><strong>VERSION</strong> V 1.0</div>
         </div>
+        <p style="margin-top: 40px; font-size: 18px; color: #00FF00;">
+            CONTACT ME!! <br>IF YOU HAVE ANY QUESTIONS, ANY PROBLEMS, ISSUES, OR IDEAS FOR FUTURE VERSION, DON'T FORGET TO REACH ME BY EMAIL!!
+        </p>
     </div>
 
     <div id="splash">
@@ -427,9 +312,8 @@
         </div>
 
         <div class="splash-footer">
-            <button id="police-mode-btn" onclick="startPoliceMode()">POLICE CHASE</button>
             <button id="delivery-mode-btn" onclick="startDeliveryMode()">DELIVERY MODE</button>
-            <button id="start-button" onclick="enterGame()">FREEROAM</button>
+            <button id="start-button" onclick="enterGame()">PLAY NOW</button>
         </div>
     </div>
 
@@ -468,14 +352,6 @@
             <div class="mission-detail">DISTANCE: <span id="delivery-distance-value">0</span> M</div>
             <div class="mission-detail">TIME LEFT: <span id="delivery-timer-value">--:--</span></div>
         </div>
-
-        <div id="police-hud">
-            <div id="police-alert">POLICE INBOUND</div>
-            <div id="police-timer">T-MINUS 10s</div>
-        </div>
-
-        <div id="drift-bonus">DRIFT BONUS! +10</div>
-
         <div class="hud-bottom">
             <div id="control-hints">
                 <div class="hint-title">SYSTEM CONTROLS</div>
@@ -486,23 +362,6 @@
                 <div>[WASD] DRIVE</div>
             </div>
         </div>
-
-        <div id="mobile-controls">
-            <div class="touch-btn" id="btn-left">
-                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-            </div>
-            <div class="touch-btn" id="btn-right">
-                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-            </div>
-            <div class="touch-btn" id="btn-brake">
-                <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-            </div>
-            <div class="touch-btn" id="btn-gas">
-                <svg viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
-            </div>
-            <div class="touch-btn" id="btn-respawn-mob">R</div>
-            <div class="touch-btn" id="btn-camera-mob">CAM</div>
-        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -511,154 +370,6 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 
     <script>
-    // =============================================================================
-    // ** GAME DATA & PERSISTENCE **
-    // =============================================================================
-    let gameData = {
-        coins: 0,
-        upgrades: {
-            engine: 0,
-            gold: 0,
-            paint: 0
-        }
-    };
-
-    function loadGameData() {
-        const stored = localStorage.getItem('hyperDriveSave');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                gameData = { ...gameData, ...parsed };
-                if(parsed.upgrades) gameData.upgrades = { ...gameData.upgrades, ...parsed.upgrades };
-            } catch(e) { console.error("Save file corrupt, resetting."); }
-        }
-        updateUIValues();
-    }
-
-    function saveGameData() {
-        localStorage.setItem('hyperDriveSave', JSON.stringify(gameData));
-        updateUIValues();
-    }
-
-    function updateUIValues() {
-        document.getElementById('splash-coin-count').textContent = gameData.coins;
-        document.getElementById('coin-count').textContent = gameData.coins;
-        document.getElementById('shop-coin-display').textContent = gameData.coins;
-        
-        updateShopItemState('item-engine', gameData.upgrades.engine > 0);
-        updateShopItemState('item-gold', gameData.upgrades.gold > 0);
-        updateShopItemState('item-paint', gameData.upgrades.paint > 0);
-    }
-
-    function updateShopItemState(id, isOwned) {
-        const el = document.getElementById(id);
-        const btn = el.querySelector('button');
-        if (isOwned) {
-            el.classList.add('owned');
-            btn.textContent = "OWNED";
-            btn.disabled = true;
-        }
-    }
-
-    // =============================================================================
-    // ** SHOP LOGIC **
-    // =============================================================================
-    window.buyUpgrade = function(type, cost) {
-        if (gameData.coins >= cost) {
-            if (gameData.upgrades[type] === 0) {
-                gameData.coins -= cost;
-                gameData.upgrades[type] = 1;
-                saveGameData();
-                alert("UPGRADE SUCCESSFUL!");
-                applyUpgrades();
-            } else {
-                alert("You already own this!");
-            }
-        } else {
-            alert("NOT ENOUGH GOLD!");
-        }
-    }
-
-    // =============================================================================
-    // ** AUDIO SYSTEM **
-    // =============================================================================
-    let audioCtx;
-    let engineOsc, engineGain;
-    let audioEnabled = false;
-
-    function initAudio() {
-        if(audioCtx) return;
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
-            
-            engineOsc = audioCtx.createOscillator();
-            engineOsc.type = 'sawtooth';
-            engineOsc.frequency.value = 100;
-            
-            engineGain = audioCtx.createGain();
-            engineGain.gain.value = 0;
-            
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 400;
-
-            engineOsc.connect(filter);
-            filter.connect(engineGain);
-            engineGain.connect(audioCtx.destination);
-            
-            engineOsc.start();
-            audioEnabled = true;
-        } catch (e) { console.warn("Audio init failed", e); }
-    }
-
-    function updateEngineSound(speed, isGas) {
-        if(!audioEnabled || !engineOsc) return;
-        const minFreq = 80;
-        const maxFreq = 400;
-        const speedFactor = Math.min(speed / 200, 1);
-        
-        const targetFreq = minFreq + (speedFactor * (maxFreq - minFreq));
-        engineOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.1);
-        
-        let targetVol = 0.05 + (speedFactor * 0.1);
-        if(isGas) targetVol += 0.05;
-        engineGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.1);
-    }
-
-    function playCoinSound() {
-        if(!audioEnabled) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    }
-
-    function playSirenSound() {
-        // Simple synth siren for police
-        if(!audioEnabled) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.5);
-        osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 1.0);
-        
-        gain.gain.value = 0.05;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 1.0);
-    }
-
     // =============================================================================
     // ** CORE VARIABLES **
     // =============================================================================
@@ -677,19 +388,19 @@
     const dayHemiSky = new THREE.Color(0xffffff);
     const dayHemiGround = new THREE.Color(0x3b4c5a);
 
-    let baseEngineForce = 9000; 
-    let maxEngineForce = 9000; 
+    const maxEngineForce = 9000; 
     const brakeForce = 40;
     const maxSteerVal = 0.7;
     const VISUAL_Y_OFFSET = -0.9; 
 
+    // ** Initial Vehicle Position **
     const initialCarPosition = new CANNON.Vec3(-3320, 1, -20);
 
     let staticBodies = [];
     let carMesh = null;
     let tireMeshPrototype = null;
     let flameMesh = null;
-    let targetArrowMesh = null;
+    let targetArrowMesh = null; // ** Target Indicator Arrow Mesh **
     let gltfLoader = null;
     let dracoLoader = null;
 
@@ -704,10 +415,8 @@
     const throttleEl = document.getElementById('hud-throttle');
     const coinCountEl = document.getElementById('coin-count');
     const splashCoinCountEl = document.getElementById('splash-coin-count');
-    const loadingStatusEl = document.getElementById('loading-status'); 
-    const loadingProgressFillEl = document.getElementById('loading-progress-fill');
-    const driftBonusEl = document.getElementById('drift-bonus');
-    const coordsEl = document.getElementById('hud-coords');
+    const loadingStatusEl = document.getElementById('loading-status'); // UX: Added reference
+    const loadingProgressFillEl = document.getElementById('loading-progress-fill'); // UX: Added reference
 
     // ** Delivery Mode Elements **
     const deliveryHudEl = document.getElementById('delivery-hud');
@@ -722,15 +431,13 @@
     let coinProto = null;
     let coinMeshes = [];
     let coinBodies = [];
+    let coinCount = 0;
     const COIN_MIN = 50;
     const COIN_MAX = 80;
     const COIN_SPAWN_RADIUS = 1500; 
     const COIN_HEIGHT = 0.7;
 
-    let driftScore = 0;
-    let isDrifting = false;
-
-    // ** Delivery Vars **
+    // ** Predefined Delivery Points **
     const DELIVERY_POINTS = [
         { name: "Sandiago's house", x: 94, y: 1.0, z: 20 },
         { name: "West Dock", x: -500, y: 1.0, z: 300 },
@@ -743,28 +450,26 @@
         { name: "Zhanyi's house", x: -2200, y: 3.0, z: 400 }, 
     ];
 
+    // ** Delivery Mode Variables **
     let isDeliveryModeActive = false;
     const MAX_MISSION_TIME = 240; 
     const TARGET_RADIUS = 5; 
-    let currentMission = { status: 'none', pickupPoint: null, deliveryTarget: null, timeStarted: 0, timeLimit: 0, pickupMesh: null, deliveryMesh: null };
+    let currentMission = {
+        status: 'none', 
+        pickupPoint: null, 
+        deliveryTarget: null, 
+        timeStarted: 0,
+        timeLimit: 0,
+        pickupMesh: null, 
+        deliveryMesh: null, 
+        pickupName: '',
+        deliveryName: '',
+    };
     
-    // ** POLICE MODE VARIABLES (NEW) **
-    let isPoliceModeActive = false;
-    let policeSpawnTime = 0;
-    let policeActive = false;
-    let policeVehicle = null;
-    let policeChassis = null;
-    let policeMesh = null;
-    let policeWheelMeshes = [];
-    let policeLight = null;
-    let policeSirenTimer = 0;
-    const POLICE_DELAY = 10000; // 10 seconds
-
     // =============================================================================
-    // ** INTERACTION **
+    // ** INTERACTION: Splash Screen Drag Rotation **
     // =============================================================================
     document.addEventListener('mousedown', (e) => {
-        if(!audioCtx) initAudio(); 
         if (!isGameRunning) {
             isDragging = true;
             previousMouseX = e.clientX;
@@ -787,77 +492,81 @@
         }
     });
 
-    function setupMobileControls() {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if(isMobile) {
-            document.getElementById('mobile-controls').style.display = 'block';
-            document.getElementById('control-hints').style.display = 'none'; 
-            
-            const bindBtn = (id, key) => {
-                const btn = document.getElementById(id);
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); inputState[key] = true; if(!audioCtx) initAudio(); });
-                btn.addEventListener('touchend', (e) => { e.preventDefault(); inputState[key] = false; });
-            };
-            
-            bindBtn('btn-gas', 'keyW');
-            bindBtn('btn-brake', 'keyS');
-            bindBtn('btn-left', 'keyA');
-            bindBtn('btn-right', 'keyD');
-
-            document.getElementById('btn-respawn-mob').addEventListener('touchstart', (e)=>{ e.preventDefault(); respawnCar();});
-            document.getElementById('btn-camera-mob').addEventListener('touchstart', (e)=>{ e.preventDefault(); toggleCamera();});
-        }
-    }
-
+    // =============================================================================
+    // ** NEW: Menu Page Show/Hide Logic (UX Enhanced) **
+    // =============================================================================
     function showMenuPage(pageId) {
-        if(!audioCtx) initAudio();
+        // Find the page element and apply the active class for fade-in
         const page = document.getElementById(pageId);
         if (page) {
-            document.getElementById('splash').style.opacity = '0';
+            document.getElementById('splash').style.opacity = '0'; // Start fading splash
             setTimeout(() => {
-                document.getElementById('splash').style.display = 'none';
-                page.style.display = 'flex'; 
-                setTimeout(() => { page.classList.add('active'); }, 10);
-            }, 400); 
+                document.getElementById('splash').style.display = 'none'; // Hide splash when faded
+                page.style.display = 'flex'; // Show page container
+                setTimeout(() => {
+                    page.classList.add('active'); // Start fade-in animation
+                }, 10); // Small delay to trigger CSS transition
+            }, 400); // Match splash opacity transition time
         }
     }
 
     function hideMenuPages() {
         const pages = document.querySelectorAll('.menu-page');
-        pages.forEach(page => page.classList.remove('active'));
-        document.getElementById('splash').style.display = 'block'; 
+        pages.forEach(page => page.classList.remove('active')); // Start fade-out
+
+        document.getElementById('splash').style.display = 'block'; // Show splash container
         setTimeout(() => {
-            document.getElementById('splash').style.opacity = '1';
-            setTimeout(() => { pages.forEach(page => page.style.display = 'none'); }, 400);
+            document.getElementById('splash').style.opacity = '1'; // Fade splash in
+            // Wait for fade-out, then hide the page
+            setTimeout(() => {
+                 pages.forEach(page => page.style.display = 'none');
+            }, 400);
         }, 10);
     }
+
 
     // =============================================================================
     // ** DELIVERY MODE CORE LOGIC **
     // =============================================================================
+
     window.startDeliveryMode = function() {
-        if (!chassisBody) { alert("Loading assets..."); return; }
-        if (!isGameRunning) enterGame();
+        if (!chassisBody) {
+            // UX: Translated alert message
+            alert("Please wait for assets to load or enter the game first."); 
+            return;
+        }
+
+        if (!isGameRunning) {
+            enterGame();
+        }
+
         isDeliveryModeActive = true;
-        isPoliceModeActive = false; // Disable police
         deliveryHudEl.style.display = 'block';
-        document.getElementById('police-hud').style.display = 'none'; // Ensure police HUD is off
+
         respawnCar();
         generateNewMission();
     }
 
     function generateNewMission() {
-        if (DELIVERY_POINTS.length < 2) return;
+        if (DELIVERY_POINTS.length < 2) {
+            // UX: Translated status text
+            missionStatusEl.textContent = 'MISSION ERROR: Not enough mission points (Need at least 2).';
+            return;
+        }
 
+        // Cleanup previous mission (if any)
         if (currentMission.pickupPoint) world.removeBody(currentMission.pickupPoint);
         if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
         if (currentMission.pickupMesh) scene.remove(currentMission.pickupMesh);
         if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
         chassisBody.removeEventListener('collide', handleMissionCollision); 
 
+        // 1. Randomly select pickup and delivery points
         let idx1 = Math.floor(Math.random() * DELIVERY_POINTS.length);
         let idx2;
-        do { idx2 = Math.floor(Math.random() * DELIVERY_POINTS.length); } while (idx1 === idx2);
+        do {
+            idx2 = Math.floor(Math.random() * DELIVERY_POINTS.length);
+        } while (idx1 === idx2);
 
         const pickupData = DELIVERY_POINTS[idx1];
         const deliveryData = DELIVERY_POINTS[idx2];
@@ -865,15 +574,18 @@
         const pickupPos = new CANNON.Vec3(pickupData.x, pickupData.y, pickupData.z);
         const deliveryPos = new CANNON.Vec3(deliveryData.x, deliveryData.y, deliveryData.z);
 
+        // 2. Create Pickup Point physics body
         const targetShape = new CANNON.Sphere(TARGET_RADIUS);
         const pickupBody = new CANNON.Body({ mass: 0, position: pickupPos, shape: targetShape });
         pickupBody.collisionResponse = 0; 
         world.addBody(pickupBody);
 
+        // 3. Create Delivery Target physics body
         const deliveryBody = new CANNON.Body({ mass: 0, position: deliveryPos, shape: targetShape });
         deliveryBody.collisionResponse = 0;
         world.addBody(deliveryBody);
 
+        // 4. Create visual meshes 
         const pickupMesh = createTargetMesh(0x00FFFF);
         pickupMesh.position.copy(pickupPos);
         scene.add(pickupMesh);
@@ -883,6 +595,7 @@
         deliveryMesh.visible = false; 
         scene.add(deliveryMesh); 
 
+        // 5. Update mission state
         currentMission = {
             status: 'pickup',
             pickupPoint: pickupBody,
@@ -895,9 +608,11 @@
             deliveryName: deliveryData.name,
         };
 
+        // UX: Translated mission status template
         missionStatusEl.textContent = `MISSION: Go to ${pickupData.name} for Pickup`;
         missionStatusEl.style.color = '#00FFFF';
 
+        // 6. Add collision listener
         chassisBody.addEventListener('collide', handleMissionCollision);
     }
 
@@ -911,17 +626,21 @@
 
     function handleMissionCollision(e) {
         if (!isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') return;
+
         const otherBody = (e.body === chassisBody) ? e.target : e.body;
 
         if (currentMission.status === 'pickup' && otherBody === currentMission.pickupPoint) {
+            // Mission Stage 1: Pickup Complete
             currentMission.status = 'delivering';
+            // UX: Translated mission status template
             missionStatusEl.textContent = `MISSION: Deliver cargo to ${currentMission.deliveryName}`;
             missionStatusEl.style.color = '#00FF00';
+            
             currentMission.pickupMesh.visible = false;
             currentMission.deliveryMesh.visible = true;
-            playCoinSound(); 
 
         } else if (currentMission.status === 'delivering' && otherBody === currentMission.deliveryTarget) {
+            // Mission Stage 2: Delivery Complete
             completeMission(true);
         }
     }
@@ -935,30 +654,34 @@
         if (success) {
             const timeBonus = Math.max(0, currentMission.timeLimit - timeElapsed);
             reward += Math.floor(timeBonus * 2); 
-            
-            if(gameData.upgrades.gold > 0) reward *= 2;
+            coinCount += reward;
+            localStorage.setItem('goldCoinCount', coinCount);
+            splashCoinCountEl.textContent = coinCount;
+            coinCountEl.textContent = coinCount;
 
-            gameData.coins += reward;
-            saveGameData();
-            playCoinSound();
-
+            // UX: Translated success message
             missionStatusEl.textContent = `MISSION SUCCESS! (+${reward} GOLD)`;
             missionStatusEl.style.color = '#FFD700';
             
             if (currentMission.deliveryMesh) scene.remove(currentMission.deliveryMesh);
             if (currentMission.pickupMesh) scene.remove(currentMission.pickupMesh);
             
+            // UX: Shorter delay after success to start next mission
             setTimeout(generateNewMission, 3000); 
+
         } else {
+            // UX: Translated failure message
             missionStatusEl.textContent = 'MISSION FAILED! Time Expired.';
             missionStatusEl.style.color = '#FF0000';
-            setTimeout(generateNewMission, 3000); 
+            setTimeout(generateNewMission, 3000); // UX: Shorter delay after failure
         }
         
+        // Cleanup target physics bodies
         if (currentMission.pickupPoint) world.removeBody(currentMission.pickupPoint);
         if (currentMission.deliveryTarget) world.removeBody(currentMission.deliveryTarget);
         currentMission.status = 'completed';
     }
+
 
     function updateDeliveryMode() {
         if (!isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') return;
@@ -975,6 +698,7 @@
         const seconds = Math.floor(timeLeft % 60).toString().padStart(2, '0');
         timerEl.textContent = `${minutes}:${seconds}`;
 
+        // Calculate distance
         let targetBody = null;
         if (currentMission.status === 'pickup') {
             targetBody = currentMission.pickupPoint;
@@ -991,368 +715,7 @@
     }
     
     // =============================================================================
-    // ** POLICE MODE LOGIC (NEW) **
-    // =============================================================================
-    window.startPoliceMode = function() {
-        if (!chassisBody) { alert("Loading assets..."); return; }
-        if (!isGameRunning) enterGame();
-        
-        isDeliveryModeActive = false;
-        isPoliceModeActive = true;
-        policeActive = false;
-        policeSpawnTime = performance.now() + POLICE_DELAY;
-
-        document.getElementById('police-hud').style.display = 'block';
-        document.getElementById('police-alert').innerText = "POLICE INBOUND";
-        document.getElementById('police-alert').style.color = "#FFD700"; // Warn color
-        
-        if(deliveryHudEl) deliveryHudEl.style.display = 'none';
-        respawnCar();
-    }
-
-    function createPoliceVehicle() {
-        if(policeChassis) return; // Already created
-
-        const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
-        policeChassis = new CANNON.Body({
-            mass: 3000, // Heavier than player
-            shape: chassisShape
-        });
-        policeChassis.angularDamping = 0.9;
-        policeChassis.linearDamping = 0.05;
-
-        policeVehicle = new CANNON.RaycastVehicle({
-            chassisBody: policeChassis,
-            indexRightAxis: 0, indexUpAxis: 1, indexForwardAxis: 2
-        });
-
-        const axleWidth = 1.0;
-        const wheelBase = 1.5;
-        function makeWheelOptions(x,y,z) {
-            return {
-                radius: 0.5, directionLocal: new CANNON.Vec3(0, -1, 0),
-                suspensionStiffness: 150, suspensionRestLength: 0.3,
-                frictionSlip: 4.0, dampingRelaxation: 8.0, dampingCompression: 10.0,
-                maxSuspensionForce: 100000, rollInfluence: 0.05,
-                axleLocal: new CANNON.Vec3(1, 0, 0),
-                chassisConnectionPointLocal: new CANNON.Vec3(x, -0.3, z)
-            };
-        }
-
-        policeVehicle.addWheel(makeWheelOptions(-axleWidth, 0, wheelBase));
-        policeVehicle.addWheel(makeWheelOptions( axleWidth, 0, wheelBase));
-        policeVehicle.addWheel(makeWheelOptions(-axleWidth, 0, -wheelBase));
-        policeVehicle.addWheel(makeWheelOptions( axleWidth, 0, -wheelBase));
-
-        // Create Mesh
-        if(carMesh) {
-            policeMesh = carMesh.clone();
-            // policeMesh inherits carMesh's scale (104.7, 104.7, 104.7)
-            
-            // Dark Police Material
-            policeMesh.traverse((node) => { 
-                if (node.isMesh) {
-                    node.material = node.material.clone();
-                    // Make it black/dark blue
-                    node.material.color.setHex(0x050522); 
-                } 
-            });
-
-            // Add Siren Lights (REVISED SIZE AND POSITION)
-            // Note: Position is relative to the scaled carMesh. Since carMesh is scaled ~100x, we need tiny lights
-            const SCALE_FACTOR = 1 / 104.7; // Approx 0.00955
-            
-            // Light Bar Geometry (Small and thin for the roof)
-            const barGeo = new THREE.BoxGeometry(0.8 * SCALE_FACTOR, 0.1 * SCALE_FACTOR, 0.2 * SCALE_FACTOR);
-            const barMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-            const lightBar = new THREE.Mesh(barGeo, barMat);
-            
-            // Position: ~0.8m above car base in scaled units (0.8 * 104.7)
-            // The car's height is roughly 1m (chassis 0.5m box + tires). 
-            // Setting position relative to the THREE car model's local coordinate system (which is scaled).
-            // A good position on the roof would be around Z=0, Y=0.01 relative to the car's local origin.
-            lightBar.position.set(0, 0.010, 0); // Y position is critical. 0.010 is visually on the roof of the scaled model.
-            
-            // Red and Blue Lights
-            const lightGeo = new THREE.BoxGeometry(0.3 * SCALE_FACTOR, 0.11 * SCALE_FACTOR, 0.21 * SCALE_FACTOR);
-            
-            const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const redLight = new THREE.Mesh(lightGeo, redMat);
-            redLight.position.x = -0.0035; // X position, close to center
-            
-            const blueMat = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-            const blueLight = new THREE.Mesh(lightGeo, blueMat);
-            blueLight.position.x = 0.0035;
-
-            lightBar.add(redLight);
-            lightBar.add(blueLight);
-            policeMesh.add(lightBar);
-            
-            policeLight = { red: redLight, blue: blueLight, state: 0 };
-            scene.add(policeMesh);
-        } else {
-            // Fallback box (If model failed to load)
-            const boxGeo = new THREE.BoxGeometry(2,1,4);
-            const boxMat = new THREE.MeshBasicMaterial({color:0x0000FF});
-            policeMesh = new THREE.Mesh(boxGeo, boxMat);
-            scene.add(policeMesh);
-        }
-        
-        // Wheels
-        policeWheelMeshes = [];
-        const cylGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
-        cylGeo.rotateZ(Math.PI/2);
-        const wheelMat = new THREE.MeshStandardMaterial({color:0x111111});
-        for(let i=0; i<4; i++){
-            let m = new THREE.Mesh(cylGeo, wheelMat);
-            scene.add(m);
-            policeWheelMeshes.push(m);
-        }
-        
-        // Set to hidden initially until spawn
-        policeMesh.visible = false;
-        policeWheelMeshes.forEach(m => m.visible = false);
-    }
-
-    function spawnPolice() {
-        if(!policeChassis) createPoliceVehicle();
-        
-        // 获取玩家当前位置和朝向
-        const playerPos = chassisBody.position;
-        const playerQuat = chassisBody.quaternion;
-
-        // 计算玩家前方的向量 (假设Z轴为前方)
-        const playerDir = new THREE.Vector3(0,0,1).applyQuaternion(playerQuat);
-        
-        const SPAWN_DISTANCE = 20; // 调试距离：20米
-        
-        // 计算生成位置：玩家位置 + 20米前方的向量
-        const spawnPos = new CANNON.Vec3(
-            playerPos.x + (playerDir.x * SPAWN_DISTANCE),
-            playerPos.y + 2, // 稍微高一点，让它落下
-            playerPos.z + (playerDir.z * SPAWN_DISTANCE)
-        );
-        
-        // 设置警车位置
-        policeChassis.position.copy(spawnPos);
-        policeChassis.velocity.set(0,0,0);
-        
-        // 旋转警车，让它面向玩家 (即与玩家朝向相反)
-        const policeQuatOpposite = new CANNON.Quaternion(playerQuat.x, playerQuat.y, playerQuat.z, playerQuat.w);
-        policeQuatOpposite.mult(new CANNON.Quaternion(0, 1, 0, 0), policeQuatOpposite); // 绕Y轴旋转180度
-        policeChassis.quaternion.copy(policeQuatOpposite); 
-
-        // Important: Only add to world if not already added (prevents error if called twice)
-        if (!world.bodies.includes(policeChassis)) {
-             world.addBody(policeChassis);
-             policeVehicle.addToWorld(world);
-        } else {
-             // If already in world, reset the vehicle state
-             policeVehicle.removeVehicle();
-             policeVehicle.addToWorld(world);
-        }
-
-        policeMesh.visible = true;
-        policeWheelMeshes.forEach(m => m.visible=true);
-        policeActive = true;
-        
-        document.getElementById('police-alert').innerText = "POLICE CHASE IN PROGRESS";
-        document.getElementById('police-alert').style.color = "#FF0000";
-
-        // Add collision listener for Game Over
-        policeChassis.addEventListener('collide', (e) => {
-            if(e.body === chassisBody) {
-                // Check relative velocity impact
-                const impact = e.contact.getImpactVelocityAlongNormal();
-                if(Math.abs(impact) > 5) { // Only bust on hard impact
-                    gameOverPolice();
-                }
-            }
-        });
-    }
-
- function updatePoliceAI() {
-    // 检查警察是否激活和底盘是否存在
-    if(!policeActive || !policeChassis) return;
-
-    // 获取玩家和警察的位置、距离、警察速度
-    const playerPos = chassisBody.position;
-    const policePos = policeChassis.position;
-    const dist = playerPos.distanceTo(policePos);
-    const policeSpeed = policeChassis.velocity.length() * 3.6; // KM/H
-    
-    let force = 0;
-    let brakeForce = 0;
-    const MAX_POLICE_FORCE = 20000;
-    
-    // --- 1. 转向逻辑：预判、平滑、速度限制 ---
-    const PREDICT_TIME = 0.5; // 预判时间 (秒)
-    const playerVelocity = chassisBody.velocity.clone();
-    
-    // 预测玩家未来位置，用于更精确的瞄准
-    const predictedPlayerPos = new CANNON.Vec3(
-        playerPos.x + playerVelocity.x * PREDICT_TIME,
-        playerPos.y, 
-        playerPos.z + playerVelocity.z * PREDICT_TIME
-    );
-
-    const targetVec = new CANNON.Vec3(predictedPlayerPos.x - policePos.x, 0, predictedPlayerPos.z - policePos.z);
-    
-    // 获取警察当前朝向和目标朝向的角度差
-    const policeQuat = new THREE.Quaternion(policeChassis.quaternion.x, policeChassis.quaternion.y, policeChassis.quaternion.z, policeChassis.quaternion.w);
-    const forward = new THREE.Vector3(0,0,1).applyQuaternion(policeQuat);
-    const targetThree = new THREE.Vector3(targetVec.x, 0, targetVec.z).normalize();
-    
-    let angle = forward.angleTo(targetThree);
-    const cross = new THREE.Vector3().crossVectors(forward, targetThree);
-    if(cross.y > 0) angle = -angle; // 确定转向方向 (+/-)
-
-    // 基础转向值：与角度成比例
-    let targetSteer = angle * 2.0; 
-    targetSteer = THREE.MathUtils.clamp(targetSteer, -maxSteerVal, maxSteerVal);
-
-    // 平滑转向过渡 (Lerp)
-    const LERP_RATE = 0.15; // 转向平滑率
-    let currentSteer = policeVehicle.getSteeringValue(0); 
-    let steer = currentSteer + (targetSteer - currentSteer) * LERP_RATE;
-
-    // 速度依赖的转向极限 (高速时限制最大转向角)
-    const MAX_SPEED_TURN_LIMIT = 0.4; // 极限速度下的最大转向比率 (例如 maxSteerVal 的 40%)
-    const MAX_TURN_SPEED = 180; // 高速定义的阈值 (KM/H)
-
-    if(policeSpeed > 5) {
-        const speedFactor = Math.min(1, policeSpeed / MAX_TURN_SPEED); 
-        const turnLimit = maxSteerVal * (1 - speedFactor * (1 - MAX_SPEED_TURN_LIMIT));
-        steer = THREE.MathUtils.clamp(steer, -turnLimit, turnLimit);
-    }
-    
-    // --- 2. 引擎/刹车逻辑：分段速度控制和拦截 ---
-    const CLOSE_DIST = 10; // 中近距离阈值 (米)
-    const BRAKE_DIST = 3;  // 极近距离阈值 (米)
-    const TARGET_SPEED_FAR = 150; // 远距离目标巡航速度 (KM/H)
-    const TARGET_SPEED_NEAR = 30; // 近距离目标巡航速度 (KM/H)
-
-    if (dist > CLOSE_DIST) {
-        // A. 远距离追逐：全速追求，但根据目标速度进行刹车调整
-        force = -MAX_POLICE_FORCE; 
-
-        // 目标速度根据距离平滑插值
-        const targetSpeed = THREE.MathUtils.lerp(TARGET_SPEED_NEAR, TARGET_SPEED_FAR, Math.min(1, (dist - CLOSE_DIST) / 50));
-
-        if (policeSpeed > targetSpeed) {
-            brakeForce = MAX_POLICE_FORCE * 0.5; // 缓和刹车以匹配速度
-            force = 0; 
-        } else if (policeSpeed < targetSpeed * 0.9) {
-            force = -MAX_POLICE_FORCE; 
-        }
-
-        // 调头逻辑：如果角度大于 90 度，猛刹车
-        if (Math.abs(angle) > Math.PI / 2) { 
-            brakeForce = MAX_POLICE_FORCE; 
-            force = 0;
-        }
-
-    } else if (dist <= CLOSE_DIST && dist > BRAKE_DIST) {
-        // B. 中近距离拦截：减速以保持接触，避免冲过头
-        
-        // 距离越近，刹车力度越大
-        const slowDownBrake = (1 - (dist - BRAKE_DIST) / (CLOSE_DIST - BRAKE_DIST)) * MAX_POLICE_FORCE * 0.8; 
-        brakeForce = slowDownBrake;
-        
-        // 缓慢加速以保持接近
-        if (policeSpeed < TARGET_SPEED_NEAR * 0.5) {
-             force = -MAX_POLICE_FORCE * 0.2;
-        }
-        
-    } else { 
-        // C. 极近距离 (< 3m)：猛烈刹车/撞击
-        force = 0;
-        brakeForce = MAX_POLICE_FORCE; 
-    }
-
-
-    // 3. 防卡死检查 (如果速度极慢且离玩家很远)
-    if (policeSpeed < 3 && dist > 20) { 
-        if (Math.abs(angle) < Math.PI / 4) {
-            // 朝向正确，尝试向前加速
-            force = -MAX_POLICE_FORCE; 
-        } else {
-            // 朝向错误，尝试倒车脱困
-            force = MAX_POLICE_FORCE * 0.5; 
-        }
-        brakeForce = 0;
-    }
-
-
-    // 4. 自恢复机制 (防止车辆翻倒)
-    const up = new THREE.Vector3(0,1,0).applyQuaternion(policeQuat);
-    if(up.y < 0.2) {
-         policeChassis.position.y += 2; // 抬升
-         policeChassis.quaternion.set(0,0,0,1); // 重置旋转
-         policeChassis.velocity.set(0,0,0); // 清除速度
-         policeChassis.angularVelocity.set(0,0,0); // 清除角速度
-    }
-
-    // --- 5. 应用控制 ---
-    
-    // 应用转向
-    policeVehicle.setSteeringValue(steer, 0);
-    policeVehicle.setSteeringValue(steer, 1);
-    
-    // 重置所有引擎力和刹车力
-    policeVehicle.applyEngineForce(0, 0); policeVehicle.applyEngineForce(0, 1);
-    policeVehicle.applyEngineForce(0, 2); policeVehicle.applyEngineForce(0, 3);
-    policeVehicle.setBrake(0, 0); policeVehicle.setBrake(0, 1);
-    policeVehicle.setBrake(0, 2); policeVehicle.setBrake(0, 3);
-
-    // 应用计算出的引擎力和刹车力 (作用于所有轮子)
-    policeVehicle.applyEngineForce(force, 0);
-    policeVehicle.applyEngineForce(force, 1);
-    policeVehicle.applyEngineForce(force, 2);
-    policeVehicle.applyEngineForce(force, 3);
-    
-    policeVehicle.setBrake(brakeForce, 0);
-    policeVehicle.setBrake(brakeForce, 1);
-    policeVehicle.setBrake(brakeForce, 2);
-    policeVehicle.setBrake(brakeForce, 3);
-
-    // --- 6. 更新视觉效果 (保持不变) ---
-    for(let i=0; i<policeVehicle.wheelInfos.length; i++){
-        policeVehicle.updateWheelTransform(i);
-        let t = policeVehicle.wheelInfos[i].worldTransform;
-        if(policeWheelMeshes[i]) {
-            policeWheelMeshes[i].position.copy(t.position);
-            policeWheelMeshes[i].quaternion.copy(t.quaternion);
-        }
-    }
-    if(policeMesh) {
-        policeMesh.position.copy(policeChassis.position);
-        policeMesh.quaternion.copy(policeChassis.quaternion);
-        // 假设 VISUAL_Y_OFFSET 已定义
-        policeMesh.position.y += VISUAL_Y_OFFSET; 
-        
-        // 警灯闪烁
-        if(policeLight) {
-            policeSirenTimer++;
-            if(policeSirenTimer > 10) {
-                policeSirenTimer = 0;
-                policeLight.state = !policeLight.state;
-                // Flash between bright and dim to simulate light
-                policeLight.red.material.color.setHex(policeLight.state ? 0xff0000 : 0x330000);
-                policeLight.blue.material.color.setHex(!policeLight.state ? 0x0000ff : 0x000033);
-            }
-        }
-    }
-    
-    // 音频
-    if(Math.random() < 0.01) playSirenSound();
-}
-
-
-
-
-    // =============================================================================
-    // ** THREE.js/Cannon.js SETUP **
+    // ** THREE.js/Cannon.js BASIC SETUP **
     // =============================================================================
     function initThree() {
         scene = new THREE.Scene();
@@ -1360,7 +723,8 @@
         scene.fog = new THREE.Fog(daySkyColor, 500, 800);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio); 
+        // ** MODIFICATION 1: Reduce Pixel Ratio by half **
+        renderer.setPixelRatio(window.devicePixelRatio / 1.2); 
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1388,7 +752,7 @@
         groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
         world.addBody(groundBody);
 
-        const groundGeo = new THREE.PlaneGeometry(3000, 3000, 10, 10); 
+        const groundGeo = new THREE.PlaneGeometry(3000, 3000, 10, 10); // Enlarge ground
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 });
         const groundMesh = new THREE.Mesh(groundGeo, groundMat);
         groundMesh.rotation.x = -Math.PI / 2;
@@ -1398,7 +762,7 @@
     }
 
     function initCameraAndLights() {
-        cameraChase = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000); 
+        cameraChase = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000); // Increase field of view distance
         cameraCockpit = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
         activeCamera = cameraChase;
 
@@ -1408,10 +772,11 @@
         dirLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
         dirLight.position.set(50,100,50);
         dirLight.castShadow = true;
+        // ** MODIFICATION 2: Reduce Shadow Map Size by half **
         dirLight.shadow.mapSize.width = 2048; 
         dirLight.shadow.mapSize.height = 2048;
         dirLight.shadow.camera.near = 0.5;
-        dirLight.shadow.camera.far = 1000; 
+        dirLight.shadow.camera.far = 1000; // Increase shadow distance
         dirLight.shadow.camera.left = -200;
         dirLight.shadow.camera.right = 200;
         dirLight.shadow.camera.top = 200;
@@ -1458,36 +823,23 @@
         vehicle.addToWorld(world);
 
         wheelMeshes = [];
-        const wheelMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
-        const cylinderGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 32);
-        cylinderGeometry.rotateZ(Math.PI / 2);
-
-        for (let i = 0; i < vehicle.wheelInfos.length; i++) {
-            let wheelMesh;
-            if (tireMeshPrototype) {
-                wheelMesh = tireMeshPrototype.clone();
-                if(i===0 || i===2) wheelMesh.rotation.y = Math.PI;
-            } else {
-                wheelMesh = new THREE.Mesh(cylinderGeometry, wheelMat);
+        if (tireMeshPrototype) {
+            for (let i = 0; i < vehicle.wheelInfos.length; i++) {
+                const wheelMesh = tireMeshPrototype.clone();
+                if(i===0 || i===2) wheelMesh.rotation.y = Math.PI; 
+                wheelMeshes.push(wheelMesh);
+                scene.add(wheelMesh);
             }
-            wheelMeshes.push(wheelMesh);
-            scene.add(wheelMesh);
-        }
-    }
-
-    function applyUpgrades() {
-        if (gameData.upgrades.engine > 0) {
-            maxEngineForce = baseEngineForce * 1.5; 
         } else {
-            maxEngineForce = baseEngineForce;
-        }
-
-        if (gameData.upgrades.paint > 0 && carMesh) {
-             carMesh.traverse((node) => { 
-                if (node.isMesh && node.material && node.material.name !== 'Glass') {
-                     node.material.color.setHex(0xFF0044);
-                } 
-            });
+            const wheelMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+            for (let i = 0; i < vehicle.wheelInfos.length; i++) {
+                const wheel = vehicle.wheelInfos[i];
+                const cylinderGeometry = new THREE.CylinderGeometry(wheel.radius, wheel.radius, 0.2, 32);
+                cylinderGeometry.rotateZ(Math.PI / 2);
+                const wheelMesh = new THREE.Mesh(cylinderGeometry, wheelMat);
+                wheelMeshes.push(wheelMesh);
+                scene.add(wheelMesh);
+            }
         }
     }
 
@@ -1516,23 +868,22 @@
         loadingManager.onProgress = function(itemUrl, itemsLoaded, itemsTotal) {
             const percent = Math.floor((itemsLoaded / itemsTotal) * 100);
             loadingProgressFillEl.style.width = percent + '%';
+            // UX: More detailed loading status
             loadingStatusEl.innerText = `(${percent}%) Loading asset: ${itemUrl.substring(itemUrl.lastIndexOf('/') + 1)}...`;
         };
         
         loadingManager.onLoad = function() {
             const loadingScreen = document.getElementById('loading-screen');
             loadingScreen.style.opacity = '0';
-            loadingStatusEl.innerText = `(100%) READY.`;
+            loadingStatusEl.innerText = `(100%) READY.`; // UX: Final ready status
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
                 document.getElementById('splash').style.display = 'block'; 
-                document.getElementById('splash').style.opacity = '1';
-                applyUpgrades(); 
+                document.getElementById('splash').style.opacity = '1'; // UX: Fade in splash
             }, 500);
 
             initVehicle();
             spawnCoinsWhenReady();
-            createPoliceVehicle(); // Initialize police components early
             requestAnimationFrame(animate);
         };
 
@@ -1555,33 +906,35 @@
             flameMesh.position.set(0, 0, 2.5);
             flameMesh.visible = false;
             carMesh.add(flameMesh);
-        }, undefined, (e) => {
-            console.warn("Using placeholder car.");
-            const boxGeo = new THREE.BoxGeometry(2, 0.5, 4);
-            const boxMat = new THREE.MeshStandardMaterial({ color: 0x00FFFF });
-            carMesh = new THREE.Mesh(boxGeo, boxMat);
-            carMesh.castShadow = true;
-            scene.add(carMesh);
         });
     }
     
+    // MODIFICATION 1: Adjust arrow size
     function loadArrowModel() {
         gltfLoader.load('arrow.glb', (gltf) => {
             targetArrowMesh = gltf.scene;
+
+            // Reduce scale to 1.0
             targetArrowMesh.scale.set(1.0, 1.0, 1.0); 
+            
+            // Set material and shadows
             targetArrowMesh.traverse((node) => { 
                 if (node.isMesh) {
                     node.castShadow = true; 
                     node.material = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8, depthTest: false });
                 } 
             });
-            targetArrowMesh.visible = false; 
+
+            targetArrowMesh.visible = false; // Initial hidden
             scene.add(targetArrowMesh);
             
-            targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF); 
-            targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00); 
+            // Cache mission colors
+            targetArrowMesh.userData.pickupColor = new THREE.Color(0x00FFFF);  // Cyan
+            targetArrowMesh.userData.deliveryColor = new THREE.Color(0x00FF00); // Green
 
         }, undefined, (error) => {
+            console.error('Failed to load arrow.glb:', error);
+            // Fallback: Use ConeGeometry if arrow.glb fails to load
             if (!targetArrowMesh) {
                 const arrowGeometry = new THREE.ConeGeometry(0.4, 2.0, 8); 
                 const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, transparent: true, opacity: 0.8 });
@@ -1600,12 +953,14 @@
             tireMeshPrototype.scale.set(0.75, 0.75, 0.75);
             tireMeshPrototype.rotation.x = Math.PI / 2;
             tireMeshPrototype.traverse((node) => { if (node.isMesh) node.castShadow = true; });
-        }, undefined, (e) => { console.warn("Using default tires"); });
+        });
     }
 
+    // MODIFICATION 3: Reduce city model scale and collision activation range
     function loadCity() {
         gltfLoader.load('https://ashley-developper.github.io/ASLFS/city.glb', (gltf) => {
             const city = gltf.scene;
+            // Scale down city model to match the COIN_SPAWN_RADIUS = 1500
             city.scale.set(4, 4, 4); 
             city.traverse((node) => {
                 if (node.isMesh) {
@@ -1643,12 +998,20 @@
                         body: body,
                         center: new THREE.Vector3().copy(geometry.boundingSphere.center),
                         radius: geometry.boundingSphere.radius,
+                        // Reduce activation range from 300 to 200
                         added: false
                     });
                 }
             });
         });
     }
+
+    // =============================================================================
+    // ** Target Arrow Update - Fixed Pointing Logic **
+    // Change: Arrow rotated 90 degrees left
+    // =============================================================================
+    const _tempDirectionVector = new THREE.Vector3();
+    const _tempCarPosition = new THREE.Vector3();
 
     function updateTargetArrow() {
         if (!targetArrowMesh || !isDeliveryModeActive || currentMission.status === 'none' || currentMission.status === 'completed') {
@@ -1659,6 +1022,7 @@
         let targetPos = null;
         let targetColor = null;
 
+        // 1. Determine target position and color
         if (currentMission.status === 'pickup') {
             targetPos = currentMission.pickupPoint.position; 
             targetColor = targetArrowMesh.userData.pickupColor;
@@ -1672,21 +1036,36 @@
         
         targetArrowMesh.visible = true;
 
+        // Color update
         targetArrowMesh.traverse((node) => {
             if (node.isMesh && node.material.color) {
                 node.material.color.copy(targetColor);
             }
         });
 
-        const _tempCarPosition = chassisBody.position;
+        // 2. Update arrow position in world space
+        _tempCarPosition.copy(chassisBody.position);
         targetArrowMesh.position.set(_tempCarPosition.x, _tempCarPosition.y + 2.5, _tempCarPosition.z); 
         
+        // 3. Rotation Logic: lookAt + 180 flip + extra rotation
         const lookAtTarget = new THREE.Vector3(targetPos.x, targetArrowMesh.position.y, targetPos.z);
+        
+        // Reset rotation (crucial step to prevent extra rotations from GLB model)
         targetArrowMesh.rotation.set(0, 0, 0); 
+        
+        // lookAt() makes the object's -Z axis point to the target.
         targetArrowMesh.lookAt(lookAtTarget); 
+
+        // 1. Rotate 180 degrees around Y-axis (makes +Z axis point to the target)
         targetArrowMesh.rotateY(Math.PI); 
+        
+        // 2. New: Rotate an extra +90 degrees around Y-axis (Rotate 90 degrees left)
         targetArrowMesh.rotateY(Math.PI / 2); 
+        
+        // 3. Rotate 45 degrees around X-axis (Tilt forward/downward)
         targetArrowMesh.rotateX(Math.PI / 4); 
+        
+        // 4. Slightly raise the arrow for better visibility
         targetArrowMesh.position.y += 0.5;
     }
 
@@ -1695,12 +1074,11 @@
     // =============================================================================
     window.addEventListener('keydown', (event) => {
         if (!isGameRunning) return;
-        if(!audioCtx) initAudio();
         const k = event.key.toLowerCase();
-        if(k==='w' || k==='arrowup') inputState.keyW = true;
-        if(k==='s' || k==='arrowdown') inputState.keyS = true;
-        if(k==='a' || k==='arrowleft') inputState.keyA = true;
-        if(k==='d' || k==='arrowright') inputState.keyD = true;
+        if(k==='w') inputState.keyW = true;
+        if(k==='s') inputState.keyS = true;
+        if(k==='a') inputState.keyA = true;
+        if(k==='d') inputState.keyD = true;
         if(k===' ') { inputState.keySpace = true; event.preventDefault(); }
         if(k==='shift') inputState.keyShift = true;
         if(k==='v') toggleCamera();
@@ -1708,10 +1086,10 @@
     });
     window.addEventListener('keyup', (event) => {
         const k = event.key.toLowerCase();
-        if(k==='w' || k==='arrowup') inputState.keyW = false;
-        if(k==='s' || k==='arrowdown') inputState.keyS = false;
-        if(k==='a' || k==='arrowleft') inputState.keyA = false;
-        if(k==='d' || k==='arrowright') inputState.keyD = false;
+        if(k==='w') inputState.keyW = false;
+        if(k==='s') inputState.keyS = false;
+        if(k==='a') inputState.keyA = false;
+        if(k==='d') inputState.keyD = false;
         if(k===' ') inputState.keySpace = false;
         if(k==='shift') inputState.keyShift = false;
         if(k==='r') inputState.keyR = false;
@@ -1729,34 +1107,9 @@
         engineForce = 0; steeringValue = 0; let brake = 0;
 
         const v = chassisBody.velocity;
-        const forwardSpeed = v.length() * 3.6; 
-        
-        updateEngineSound(forwardSpeed, inputState.keyW);
-
         const chassisQuaternion = new THREE.Quaternion(chassisBody.quaternion.x, chassisBody.quaternion.y, chassisBody.quaternion.z, chassisBody.quaternion.w);
         const forwardVector = new THREE.Vector3(0, 0, 1).applyQuaternion(chassisQuaternion);
         const velocityVector = new THREE.Vector3(v.x, v.y, v.z);
-        velocityVector.y = 0; 
-        velocityVector.normalize();
-        
-        const driftAngle = Math.abs(forwardVector.angleTo(velocityVector));
-        const minDriftAngle = 0.3; 
-
-        if (forwardSpeed > 30 && driftAngle > minDriftAngle && (inputState.keyA || inputState.keyD || inputState.keySpace)) {
-            if (!isDrifting) {
-                isDrifting = true;
-                driftBonusEl.style.display = 'block';
-            }
-            if (Math.random() < 0.05) { 
-                 const bonus = (gameData.upgrades.gold > 0) ? 2 : 1;
-                 gameData.coins += (1 * bonus);
-                 saveGameData(); 
-            }
-        } else {
-            isDrifting = false;
-            driftBonusEl.style.display = 'none';
-        }
-
         const isMovingForward = velocityVector.dot(forwardVector) > 0.5;
         const isMovingBackward = velocityVector.dot(forwardVector) < -0.5;
 
@@ -1770,7 +1123,7 @@
             if (isMovingForward) brake = maxEngineForce * 0.5;
             else { engineForce = maxEngineForce * 0.5; gearEl.textContent = 'R'; }
         } else if (!inputState.keySpace) {
-            gearEl.textContent = (forwardSpeed < 1) ? 'P' : 'N';
+            gearEl.textContent = (v.length()*3.6 < 1) ? 'P' : 'N';
         }
 
         if (inputState.keyShift && engineForce !== 0) {
@@ -1847,27 +1200,8 @@
         let throttlePercent = 0;
         if (engineForce !== 0) throttlePercent = Math.abs((engineForce / (maxEngineForce * 2.5)) * 100);
         throttleEl.textContent = Math.min(100, throttlePercent).toFixed(0) + '%';
-        
-        coinCountEl.textContent = gameData.coins;
 
-        // ** Police Timer HUD update **
-        if(isPoliceModeActive && !policeActive) {
-            let timeLeft = (policeSpawnTime - performance.now()) / 1000;
-            if(timeLeft <= 0) {
-                spawnPolice();
-                document.getElementById('police-timer').innerText = "POLICE ACTIVE";
-            } else {
-                document.getElementById('police-timer').innerText = `SPAWN IN: ${timeLeft.toFixed(1)}s`;
-            }
-        }
-    }
-        if (chassisBody) {
-        const pos = chassisBody.position;
-        const x = pos.x.toFixed(1);
-        const y = pos.y.toFixed(1);
-        const z = pos.z.toFixed(1);
-        
-        coordsEl.textContent = `${x}, ${y}, ${z}`;
+        coinCountEl.textContent = coinCount;
     }
 
     function updateColliders() {
@@ -1875,6 +1209,7 @@
         const chassisPos = new THREE.Vector3(chassisBody.position.x, chassisBody.position.y, chassisBody.position.z);
         staticBodies.forEach(obj => {
             const d = chassisPos.distanceTo(obj.center);
+            // Reduce activation range to match smaller city model
             if (!obj.added && d <= obj.radius + 200) { 
                 world.addBody(obj.body);
                 obj.added = true;
@@ -1886,17 +1221,18 @@
     }
 
     function loadCoinPrototype(callback) {
+        const stored = localStorage.getItem('goldCoinCount');
+        coinCount = stored ? parseInt(stored, 10) : 0;
+        splashCoinCountEl.textContent = coinCount;
+        coinCountEl.textContent = coinCount;
+
         const coinLoader = new THREE.GLTFLoader();
         coinLoader.load('gold_coin.glb', (gltf) => {
             coinProto = gltf.scene;
             coinProto.traverse(node => { if (node.isMesh) node.castShadow = true; });
             if (callback) callback();
         }, undefined, (err) => {
-            console.warn('gold_coin.glb fallback');
-            const geo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16);
-            geo.rotateX(Math.PI/2);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1.0, roughness: 0.3 });
-            coinProto = new THREE.Mesh(geo, mat);
+            console.warn('gold_coin.glb load failed', err);
             if (callback) callback();
         });
     }
@@ -1943,11 +1279,9 @@
                         coinMeshes.splice(bIdx, 1);
                         coinBodies.splice(bIdx, 1);
                         try { world.removeBody(coinBody); } catch (err) {}
-                        
-                        const multiplier = (gameData.upgrades.gold > 0) ? 2 : 1;
-                        gameData.coins += (1 * multiplier);
-                        saveGameData();
-                        playCoinSound(); 
+                        coinCount += 1;
+                        localStorage.setItem('goldCoinCount', coinCount);
+                        coinCountEl.textContent = coinCount;
                     }
                 }
             });
@@ -1960,8 +1294,7 @@
     // ** MAIN LOOP **
     // =============================================================================
     function animate(time) {
-        if(isGameRunning || !isGameRunning) requestAnimationFrame(animate); 
-        
+        requestAnimationFrame(animate);
         if (!chassisBody || !world) return;
         
         if (isGameRunning) {
@@ -1978,16 +1311,11 @@
             
             updateControls();
             updateColliders();
-            
             if (isDeliveryModeActive) {
                 updateDeliveryMode(); 
                 updateTargetArrow(); 
             } else if (targetArrowMesh) {
                 targetArrowMesh.visible = false;
-            }
-
-            if (isPoliceModeActive) {
-                if(policeActive) updatePoliceAI();
             }
         }
 
@@ -2005,14 +1333,6 @@
             carMesh.quaternion.copy(chassisBody.quaternion);
             carMesh.position.y += VISUAL_Y_OFFSET; 
         }
-
-        // Police Car Synchronization (always runs if policeMesh exists)
-        if (policeMesh && policeActive) {
-            policeMesh.position.copy(policeChassis.position);
-            policeMesh.quaternion.copy(policeChassis.quaternion);
-            policeMesh.position.y += VISUAL_Y_OFFSET;
-        }
-
 
         for (let i = 0; i < coinMeshes.length; i++) {
             if (coinBodies[i]) {
@@ -2033,9 +1353,10 @@
     // =============================================================================
     
     function initSystem() {
-        loadGameData(); 
-        setupMobileControls();
-        
+        const stored = localStorage.getItem('goldCoinCount');
+        coinCount = stored ? parseInt(stored, 10) : 0;
+        splashCoinCountEl.textContent = coinCount;
+
         initThree();
         initCannon();
         initGround();
@@ -2049,17 +1370,15 @@
     }
 
     window.enterGame = function() { 
-        if(!audioCtx) initAudio(); 
         document.getElementById('splash').style.opacity = '0';
+        // UX: Increased delay for smoother transition
         setTimeout(() => {
             document.getElementById('splash').style.display = 'none';
             document.getElementById('hud-layer').style.display = 'flex';
         }, 500);
         
         isGameRunning = true; 
-        isPoliceModeActive = false; // Reset modes
         if(isDeliveryModeActive) deliveryHudEl.style.display = 'block';
-        document.getElementById('police-hud').style.display = 'none'; // Ensure police HUD is off when not in mode
     }
 
     window.addEventListener('resize', () => {
