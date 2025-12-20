@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>NEON PONG: ULTRA CHAOS</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            /* 更换为更有科技感的字体堆栈 */
+            font-family: "Segoe UI Black", "Arial Black", sans-serif;
+            user-select: none;
+            touch-action: none; /* 禁用系统默认手势，确保触控流畅 */
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        h1 {
+            color: #fff;
+            font-size: 100px;
+            text-transform: uppercase;
+            letter-spacing: 15px;
+            margin: 0;
+            text-shadow: 0 0 20px #0ff, 0 0 50px #0ff;
+            transform: skew(-10deg);
+        }
+        /* 响应式标题，防止手机端溢出 */
+        @media (max-width: 600px) {
+            h1 { font-size: 50px; letter-spacing: 5px; }
+            .score-board { font-size: 60px !important; gap: 50px !important; }
+        }
+        p {
+            color: #fff;
+            font-size: 24px;
+            margin-top: 20px;
+            text-shadow: 0 0 10px #0ff;
+        }
+        .score-board {
+            position: absolute;
+            top: 40px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 150px;
+            font-size: 100px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.1);
+            z-index: -1;
+        }
+        #player-score { color: #0ff; text-shadow: 0 0 30px #0ff; }
+        #ai-score { color: #f0f; text-shadow: 0 0 30px #f0f; }
+        
+        #start-screen, #difficulty-screen, #game-over-screen {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border: 4px solid #fff;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
+            pointer-events: auto;
+            backdrop-filter: blur(15px);
+            transition: opacity 0.3s;
+            max-width: 80%;
+        }
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        
+        button {
+            background: transparent;
+            color: #0ff;
+            border: 3px solid #0ff;
+            padding: 20px 60px;
+            font-size: 32px;
+            cursor: pointer;
+            margin-top: 40px;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px #0ff;
+        }
+        button:hover {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 50px #0ff;
+        }
+
+        /* 难度按钮专用样式 */
+        .diff-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .diff-btn {
+            padding: 15px;
+            font-size: 18px;
+            margin: 0;
+            border-width: 2px;
+        }
+        .diff-btn.very-easy { color: #0f0; border-color: #0f0; box-shadow: 0 0 10px #0f0; }
+        .diff-btn.easy { color: #aff; border-color: #aff; box-shadow: 0 0 10px #aff; }
+        .diff-btn.medium { color: #ff0; border-color: #ff0; box-shadow: 0 0 10px #ff0; }
+        .diff-btn.hard { color: #f80; border-color: #f80; box-shadow: 0 0 10px #f80; }
+        .diff-btn.impossible { color: #f00; border-color: #f00; box-shadow: 0 0 10px #f00; grid-column: span 2; }
+
+        /* 角色卡片样式补充 */
+        .char-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .char-card {
+            border: 2px solid #444;
+            padding: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: rgba(255,255,255,0.05);
+            min-width: 120px;
+        }
+        .char-card.selected { border-color: #0ff; background: rgba(0, 255, 255, 0.2); }
+        .char-card.locked { opacity: 0.6; grayscale: 1; }
+        .char-name { font-weight: bold; font-size: 18px; color: #fff; }
+        .char-skill { font-size: 12px; color: #aaa; margin-top: 5px; }
+        .char-price { color: #ff0; margin-top: 5px; font-size: 14px; }
+
+        /* --- 优化：科技感大方的中间提示文字 --- */
+        #combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-family: "Verdana", "Geneva", "Arial Black", sans-serif;
+            font-size: 90px;
+            color: #fff;
+            font-weight: 900;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 500;
+            text-shadow: 
+                3px 3px 0px #ff8800,
+                -1px -1px 0px #fff,
+                0 0 20px rgba(255, 255, 0, 0.8),
+                0 0 40px rgba(255, 0, 0, 0.5);
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFEA00 50%, #FF9500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+            filter: drop-shadow(0 0 10px rgba(255,255,0,0.3));
+        }
+
+        .cool-pop {
+            animation: techPopAnim 1s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        @keyframes techPopAnim {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; letter-spacing: 20px; }
+            20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; letter-spacing: 5px; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; letter-spacing: 2px; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; letter-spacing: 0px; }
+        }
+
+        #coin-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #ff0;
+            font-size: 30px;
+            text-shadow: 0 0 15px #ff0;
+            z-index: 100;
+        }
+        #skill-ready {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0ff;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        #challenge-box {
+            position: absolute;
+            top: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 150;
+        }
+        @media (max-width: 500px) { #challenge-box { width: 80%; } }
+        #challenge-label {
+            color: #ff3333;
+            font-weight: bold;
+            font-size: 28px;
+            text-shadow: 0 0 20px #f00;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        #progress-bg {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #ff3333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff8800);
+            box-shadow: 0 0 20px #f00;
+            transition: width 0.1s linear;
+        }
+        .controls-hint {
+            color: #aaa;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="coin-display">COINS: 0</div>
+    <div id="skill-ready"></div>
+
+    <div id="challenge-box" class="hidden">
+        <div id="challenge-label">TIME CHALLENGE: 0/2</div>
+        <div id="progress-bg">
+            <div id="progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="score-board">
+        <div id="player-score">0</div>
+        <div id="ai-score">0</div>
+    </div>
+
+    <div id="ui-layer">
+        <div id="start-screen">
+            <h1>Neon Pong</h1>
+            <p>Extreme Physics & Chaos Mode</p>
+            <div class="char-container" id="char-list"></div>
+            <button onclick="game.showDifficulty()">Select Difficulty</button>
+            <div class="controls-hint">Move: Mouse/Touch • Skill: Space/Double Tap</div>
+        </div>
+
+        <div id="difficulty-screen" class="hidden">
+            <h1>SELECT MODE</h1>
+            <div class="diff-container">
+                <button class="diff-btn very-easy" onclick="game.start('very-easy')">VERY EASY</button>
+                <button class="diff-btn easy" onclick="game.start('easy')">EASY</button>
+                <button class="diff-btn medium" onclick="game.start('medium')">MEDIUM</button>
+                <button class="diff-btn hard" onclick="game.start('hard')">HARD</button>
+                <button class="diff-btn impossible" onclick="game.start('impossible')">IMPOSSIBLE</button>
+            </div>
+            <button style="border:none; font-size:16px;" onclick="game.backToStart()">Back</button>
+        </div>
+
+        <div id="game-over-screen" class="hidden">
+            <h1 id="winner-text">YOU WIN</h1>
+            <p id="final-score">Score: 0 - 0</p>
+            <p id="coin-earned" style="color:#ff0; font-size: 32px;">+0 COINS</p>
+            <button onclick="game.showDifficulty()">Play Again</button>
+        </div>
+        <div id="combo-display">TWO BALLS!</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const AudioEngine = {
+    ctx: null,
+    init() {
+        if(this.ctx) return;
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+    },
+    playTone(freq, type, duration, vol = 0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    playHit() { this.playTone(400 + Math.random() * 200, 'square', 0.1, 0.1); },
+    playWall() { this.playTone(200, 'sine', 0.1, 0.1); },
+    playScore(isPlayer) { 
+        if(isPlayer) {
+            this.playTone(600, 'triangle', 0.2, 0.2); 
+            setTimeout(() => this.playTone(800, 'triangle', 0.4, 0.2), 100);
+        } else {
+            this.playTone(150, 'sawtooth', 0.5, 0.2); 
+        }
+    },
+    playPowerUp() { this.playTone(1200, 'sine', 0.3, 0.15); }
+};
+
+const CHARACTERS = [
+    { id: 'neon', name: 'NEON', skill: 'Swift Strike', price: 0, color: '#0ff', ability: 'speed' },
+    { id: 'phantom', name: 'PHANTOM', skill: 'Ghost Ripple', price: 100, color: '#f0f', ability: 'stealth' },
+    { id: 'titan', name: 'TITAN', skill: 'Heavy Impact', price: 250, color: '#0f0', ability: 'size' }
+];
+
+let gameState = {
+    coins: parseInt(localStorage.getItem('pong_coins')) || 0,
+    unlocked: JSON.parse(localStorage.getItem('pong_unlocked')) || ['neon'],
+    selected: 'neon'
+};
+
+const CONFIG = {
+    paddleWidth: 20,
+    paddleHeight: 110,
+    ballSpeed: 12,      
+    ballMaxSpeed: 30,   
+    spinFactor: 0.2,    
+    friction: 0.99,
+    colors: { player: '#0ff', ai: '#f0f', ball: '#fff', grid: '#1a1a1a' }
+};
+
+// --- 大幅下调了前三个难度的参数 ---
+const DIFFICULTIES = {
+    'very-easy': { speed: 0.04, error: 150, predict: false },
+    'easy': { speed: 0.08, error: 80, predict: false },
+    'medium': { speed: 0.15, error: 40, predict: true },
+    'hard': { speed: 0.35, error: 10, predict: true },
+    'impossible': { speed: 0.95, error: 0, predict: true }
+};
+
+function lerp(start, end, amt) { return (1 - amt) * start + amt * end; }
+function clamp(num, min, max) { return Math.min(Math.max(num, min), max); }
+
+class Particle {
+    constructor(x, y, color, speed) {
+        this.x = x; this.y = y; this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * speed;
+        this.vx = Math.cos(angle) * velocity;
+        this.vy = Math.sin(angle) * velocity;
+        this.life = 1.0;
+        this.decay = 0.02 + Math.random() * 0.03;
+    }
+    update() { this.x += this.vx; this.y += this.vy; this.life -= this.decay; }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+class PowerUp {
+    constructor(x, y) {
+        this.x = x; this.y = y; this.radius = 18;
+        this.active = true; this.type = Math.floor(Math.random() * 3); 
+        this.pulse = 0;
+    }
+    draw(ctx) {
+        if(!this.active) return;
+        this.pulse += 0.1;
+        const glow = 15 + Math.sin(this.pulse) * 10;
+        ctx.shadowBlur = glow;
+        if (this.type === 0) { ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; }
+        else if (this.type === 1) { ctx.fillStyle = '#0f0'; ctx.shadowColor = '#0f0'; }
+        else { ctx.fillStyle = '#00f'; ctx.shadowColor = '#00f'; }
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#000'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const label = ['x3', 'BIG', 'slo'][this.type];
+        ctx.fillText(label, this.x, this.y);
+    }
+}
+
+class Ball {
+    constructor(x, y) {
+        this.reset(x, y);
+        this.trail = [];
+        this.opacity = 1;
+        this.ghostMode = false;
+    }
+    reset(x, y) {
+        this.x = x; this.y = y;
+        this.speed = CONFIG.ballSpeed;
+        const dir = Math.random() > 0.5 ? 1 : -1;
+        this.vx = dir * this.speed;
+        this.vy = (Math.random() * 2 - 1) * this.speed;
+        this.radius = 10; this.spin = 0; this.active = true;
+    }
+    update() {
+        if (!this.active) return;
+        this.vy += this.spin * 0.08;
+        if(this.ghostMode) this.vy += Math.sin(Date.now() * 0.01) * 0.8;
+        this.spin *= 0.99;
+        this.x += this.vx; this.y += this.vy;
+        this.trail.push({x: this.x, y: this.y, alpha: 1.0});
+        if(this.trail.length > 15) this.trail.shift();
+        this.trail.forEach(t => t.alpha -= 0.08);
+        if (this.y - this.radius < 0 || this.y + this.radius > game.height) {
+            this.vy *= -1.02;
+            this.y = clamp(this.y, this.radius, game.height - this.radius);
+            game.shakeScreen(6); game.spawnParticles(this.x, this.y, '#fff');
+            AudioEngine.playWall();
+        }
+    }
+    draw(ctx) {
+        if (!this.active) return;
+        this.trail.forEach((t, i) => {
+            ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha * 0.4 * this.opacity})`;
+            ctx.beginPath(); ctx.arc(t.x, t.y, this.radius * (i/15), 0, Math.PI*2); ctx.fill();
+        });
+        ctx.shadowBlur = 25; ctx.shadowColor = CONFIG.colors.ball;
+        ctx.globalAlpha = this.opacity; ctx.fillStyle = CONFIG.colors.ball;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+}
+
+class Paddle {
+    constructor(isPlayer) {
+        this.isPlayer = isPlayer;
+        this.width = CONFIG.paddleWidth; this.height = CONFIG.paddleHeight;
+        this.x = isPlayer ? 30 : 0; this.y = 0;
+        this.vy = 0; this.lastY = 0; this.color = isPlayer ? CONFIG.colors.player : CONFIG.colors.ai;
+        this.score = 0; this.heightMod = 0; this.skillCooldown = 0;
+    }
+    update() {
+        this.vy = this.y - this.lastY;
+        this.lastY = this.y;
+        if (this.heightMod > 0) this.heightMod -= 0.3;
+        if (this.skillCooldown > 0) {
+            this.skillCooldown--;
+            if(this.isPlayer) document.getElementById('skill-ready').innerText = `SKILL CD: ${Math.ceil(this.skillCooldown/60)}S`;
+        } else if(this.isPlayer && game.running) {
+            document.getElementById('skill-ready').innerText = "SKILL READY [SPACE/DBL TAP]";
+        }
+    }
+    draw(ctx) {
+        ctx.shadowBlur = 30; ctx.shadowColor = this.color;
+        ctx.fillStyle = this.color;
+        const h = this.height + this.heightMod;
+        ctx.beginPath();
+        if (this.isPlayer) {
+            ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.width, this.y + 10);
+            ctx.lineTo(this.x + this.width, this.y + h - 10); ctx.lineTo(this.x, this.y + h);
+        } else {
+            ctx.moveTo(this.x + this.width, this.y); ctx.lineTo(this.x, this.y + 10);
+            ctx.lineTo(this.x, this.y + h - 10); ctx.lineTo(this.x + this.width, this.y + h);
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+        ctx.fillRect(this.x + (this.isPlayer?5:10), this.y + 10, 4, h - 20);
+    }
+}
+
+const game = {
+    canvas: document.getElementById('gameCanvas'),
+    ctx: document.getElementById('gameCanvas').getContext('2d'),
+    width: 0, height: 0, running: false,
+    player: new Paddle(true), ai: new Paddle(false),
+    balls: [], particles: [], powerups: [],
+    shake: 0, mouseY: 0,
+    lastTapTime: 0,
+    currentDifficulty: 'medium',
+
+    challenge: {
+        active: false,
+        timer: 0,
+        maxTime: 720,
+        target: 2,
+        current: 0
+    },
+    
+    init() {
+        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('mousemove', e => this.mouseY = e.clientY);
+        window.addEventListener('touchstart', e => {
+            this.handleTouch(e);
+            const now = Date.now();
+            if (now - this.lastTapTime < 300) this.useSkill();
+            this.lastTapTime = now;
+        }, { passive: false });
+        window.addEventListener('touchmove', e => {
+            this.handleTouch(e);
+            e.preventDefault();
+        }, { passive: false });
+        window.addEventListener('keydown', e => { if(e.code === 'Space') this.useSkill(); });
+        this.resize(); this.renderChars(); this.updateCoinUI();
+        this.loop = this.loop.bind(this);
+        requestAnimationFrame(this.loop);
+    },
+    handleTouch(e) { if (e.touches.length > 0) this.mouseY = e.touches[0].clientY; },
+    resize() {
+        this.width = window.innerWidth; this.height = window.innerHeight;
+        this.canvas.width = this.width; this.canvas.height = this.height;
+        this.ai.x = this.width - 50;
+    },
+    renderChars() {
+        const container = document.getElementById('char-list');
+        container.innerHTML = '';
+        CHARACTERS.forEach(char => {
+            const isUnlocked = gameState.unlocked.includes(char.id);
+            const card = document.createElement('div');
+            card.className = `char-card ${gameState.selected === char.id ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`;
+            card.innerHTML = `
+                <div class="char-name">${char.name}</div>
+                <div class="char-skill">${char.skill}</div>
+                ${!isUnlocked ? `<div class="char-price">💰 ${char.price}</div>` : ''}
+            `;
+            card.onclick = (e) => { e.stopPropagation(); this.selectChar(char); };
+            container.appendChild(card);
+        });
+    },
+    selectChar(char) {
+        if (gameState.unlocked.includes(char.id)) {
+            gameState.selected = char.id;
+            this.player.color = char.color;
+        } else if (gameState.coins >= char.price) {
+            gameState.coins -= char.price;
+            gameState.unlocked.push(char.id);
+            gameState.selected = char.id;
+            this.player.color = char.color;
+            this.saveProgress();
+            this.updateCoinUI();
+        }
+        this.renderChars();
+    },
+    saveProgress() {
+        localStorage.setItem('pong_coins', gameState.coins);
+        localStorage.setItem('pong_unlocked', JSON.stringify(gameState.unlocked));
+    },
+    showCoolText(text) {
+        const el = document.getElementById('combo-display');
+        el.innerText = text;
+        el.classList.remove('cool-pop');
+        void el.offsetWidth; 
+        el.classList.add('cool-pop');
+    },
+    showDifficulty() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('difficulty-screen').classList.remove('hidden');
+    },
+    backToStart() {
+        document.getElementById('difficulty-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+    },
+    useSkill() {
+        if (!this.running || this.player.skillCooldown > 0) return;
+        const char = CHARACTERS.find(c => c.id === gameState.selected);
+        if (char.ability === 'stealth') {
+            this.balls.forEach(b => { if(b.vx < 0) { b.opacity = 0.05; b.ghostMode = true; } });
+            this.showCoolText("PHANTOM STRIKE!");
+            setTimeout(() => this.balls.forEach(b => { b.opacity = 1; b.ghostMode = false; }), 3000);
+        } else if (char.ability === 'size') {
+            this.player.heightMod = 200;
+            this.showCoolText("TITAN MODE!");
+        } else if (char.ability === 'speed') {
+            this.balls.forEach(b => { if(b.vx > 0) b.vx *= 1.8; });
+            this.showCoolText("NEON RUSH!");
+        }
+        this.player.skillCooldown = 480;
+        AudioEngine.playPowerUp();
+        this.shakeScreen(15);
+    },
+    startChallenge() {
+        if(this.challenge.active || !this.running) return;
+        this.challenge.active = true;
+        this.challenge.current = 0;
+        this.challenge.timer = this.challenge.maxTime;
+        document.getElementById('challenge-box').classList.remove('hidden');
+        this.showCoolText("TWO BALLS! CHAOS");
+        this.shakeScreen(20);
+        const b2 = new Ball(this.width/2, this.height/2);
+        b2.vx *= -1; 
+        this.balls.push(b2);
+    },
+    endChallenge(success) {
+        this.challenge.active = false;
+        document.getElementById('challenge-box').classList.add('hidden');
+        if (success) {
+            gameState.coins += 80;
+            this.updateCoinUI();
+            this.showCoolText("COMPLETE!");
+            AudioEngine.playPowerUp();
+        }
+    },
+    start(diff = 'medium') {
+        this.currentDifficulty = diff;
+        AudioEngine.init();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('difficulty-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        this.player.score = 0; this.ai.score = 0;
+        this.updateScoreUI();
+        this.balls = [new Ball(this.width/2, this.height/2)];
+        this.challenge.active = false;
+        this.running = true;
+    },
+    gameOver(winnerText) {
+        this.running = false;
+        const reward = this.player.score * 15 + (winnerText.includes("WIN") ? 150 : 50);
+        gameState.coins += reward;
+        this.saveProgress();
+        this.updateCoinUI();
+        document.getElementById('winner-text').innerText = winnerText;
+        document.getElementById('winner-text').style.color = winnerText.includes("WIN") ? "#0ff" : "#f0f";
+        document.getElementById('final-score').innerText = `${this.player.score} - ${this.ai.score}`;
+        document.getElementById('coin-earned').innerText = `+${reward} COINS`;
+        document.getElementById('game-over-screen').classList.remove('hidden');
+        document.getElementById('skill-ready').innerText = "";
+        document.getElementById('challenge-box').classList.add('hidden');
+        this.renderChars();
+    },
+    shakeScreen(amount) { this.shake = amount; },
+    spawnParticles(x, y, color, count = 12) {
+        for(let i=0; i<count; i++) this.particles.push(new Particle(x, y, color, 7));
+    },
+    spawnPowerUp() {
+        const x = this.width/2 + (Math.random()*400 - 200);
+        const y = Math.random() * (this.height - 100) + 50;
+        this.powerups.push(new PowerUp(x, y));
+    },
+    update() {
+        if(!this.running) return;
+
+        if (this.challenge.active) {
+            this.challenge.timer--;
+            const progress = (this.challenge.timer / this.challenge.maxTime) * 100;
+            document.getElementById('progress-fill').style.width = progress + "%";
+            if (this.challenge.timer <= 0) this.endChallenge(false);
+        } else if (Math.random() < 0.002) {
+            this.startChallenge();
+        }
+
+        if(this.shake > 0) this.shake *= 0.9;
+        const pHeight = this.player.height + this.player.heightMod;
+        this.player.y = clamp(this.mouseY - pHeight/2, 0, this.height - pHeight);
+        this.player.update();
+
+        // --- 逻辑优化的 AI 难度系统 ---
+        const diffSetting = DIFFICULTIES[this.currentDifficulty];
+        let threat = this.balls.filter(b => b.vx > 0).sort((a,b) => (this.ai.x - a.x) - (this.ai.x - b.x))[0];
+        let targetY = this.height / 2;
+
+        if (threat) {
+            if (diffSetting.predict) {
+                // 如果启用了预测逻辑（Medium以上）
+                let tempX = threat.x, tempY = threat.y, tempVX = threat.vx, tempVY = threat.vy;
+                let iterations = 0;
+                while (tempX < this.ai.x && iterations < 50) {
+                    tempX += tempVX; tempY += tempVY;
+                    if (tempY < 0 || tempY > this.height) tempVY *= -1;
+                    iterations++;
+                }
+                targetY = tempY;
+            } else {
+                // Easy 和 Very Easy 只是死死盯着球的当前位置
+                targetY = threat.y;
+            }
+
+            // 加入难度特有的随机误差（让 AI 看起来“看走眼”了）
+            const error = (Math.random() - 0.5) * diffSetting.error;
+            targetY = targetY + error - (this.ai.height + this.ai.heightMod) / 2;
+            
+            let reaction = diffSetting.speed;
+            // 只有高难度才有针对高速球的瞬间反应补偿
+            if (this.currentDifficulty === 'impossible' && Math.abs(threat.vx) > 20) reaction *= 1.2;
+            
+            this.ai.y = lerp(this.ai.y, targetY, reaction);
+        } else {
+            // 没有威胁时闲逛
+            this.ai.y = lerp(this.ai.y, this.height/2 - this.ai.height/2, 0.03);
+        }
+        
+        this.ai.y = clamp(this.ai.y, 0, this.height - (this.ai.height + this.ai.heightMod));
+        this.ai.update();
+
+        this.balls.forEach(ball => {
+            ball.update();
+            const p = this.player;
+            const ph = p.height + p.heightMod;
+            if (ball.x - ball.radius < p.x + p.width && ball.x + ball.radius > p.x && ball.y > p.y && ball.y < p.y + ph) {
+                ball.vx = Math.abs(ball.vx) * 1.15;
+                if(ball.vx > CONFIG.ballMaxSpeed) ball.vx = CONFIG.ballMaxSpeed;
+                ball.x = p.x + p.width + ball.radius;
+                ball.spin += p.vy * CONFIG.spinFactor; 
+                ball.vy += p.vy * 0.25;
+                ball.opacity = 1;
+                AudioEngine.playHit(); this.shakeScreen(10);
+                this.spawnParticles(ball.x, ball.y, p.color, 25);
+                if(Math.random() < 0.2) this.spawnPowerUp();
+            }
+            const ai = this.ai;
+            const aih = ai.height + ai.heightMod;
+            if (ball.x + ball.radius > ai.x && ball.x - ball.radius < ai.x + ai.width && ball.y > ai.y && ball.y < ai.y + aih) {
+                ball.vx = -Math.abs(ball.vx) * 1.12;
+                ball.x = ai.x - ball.radius;
+                ball.spin -= ai.vy * CONFIG.spinFactor;
+                AudioEngine.playHit(); this.shakeScreen(10);
+                this.spawnParticles(ball.x, ball.y, '#f0f', 25);
+            }
+            if (ball.x < 0) { this.ai.score++; this.scoreEvent(ball, false); }
+            else if (ball.x > this.width) { this.player.score++; this.scoreEvent(ball, true); }
+            this.powerups.forEach((pu, idx) => {
+                if (Math.hypot(ball.x - pu.x, ball.y - pu.y) < ball.radius + pu.radius) {
+                    this.activatePowerUp(pu.type, ball.vx > 0);
+                    this.powerups.splice(idx, 1);
+                    AudioEngine.playPowerUp(); this.spawnParticles(pu.x, pu.y, '#fff', 40);
+                }
+            });
+        });
+
+        this.balls = this.balls.filter(b => b.active);
+        if(this.balls.length === 0 && this.running) this.balls.push(new Ball(this.width/2, this.height/2));
+        if (this.player.score >= 10 || this.ai.score >= 10) this.gameOver(this.player.score >= 10 ? "YOU WIN" : "GAME OVER");
+        this.particles.forEach(p => p.update());
+        this.particles = this.particles.filter(p => p.life > 0);
+    },
+    activatePowerUp(type, forPlayer) {
+        if (type === 0) {
+            const b = this.balls[0];
+            if(b) { const nb = new Ball(b.x, b.y); nb.vx = -b.vx; this.balls.push(nb); }
+            this.showCoolText("MULTI BALL!");
+        } else if (type === 1) {
+            if (forPlayer) this.player.heightMod = 150; else this.ai.heightMod = 150;
+            this.showCoolText("GIGA PADDLE!");
+        } else if (type === 2) {
+            this.balls.forEach(b => { b.vx *= 0.5; b.vy *= 0.5; });
+            this.showCoolText("SLOW MO!");
+        }
+        this.shakeScreen(12);
+    },
+    scoreEvent(ball, playerScored) {
+        ball.active = false; AudioEngine.playScore(playerScored);
+        this.shakeScreen(25); this.updateScoreUI();
+        if (this.challenge.active && playerScored) {
+            this.challenge.current++;
+            document.getElementById('challenge-label').innerText = `TIME CHALLENGE: ${this.challenge.current}/${this.challenge.target}`;
+            if (this.challenge.current >= this.challenge.target) this.endChallenge(true);
+        }
+    },
+    updateScoreUI() {
+        document.getElementById('player-score').innerText = this.player.score;
+        document.getElementById('ai-score').innerText = this.ai.score;
+    },
+    updateCoinUI() {
+        document.getElementById('coin-display').innerText = `COINS: ${gameState.coins}`;
+    },
+    draw() {
+        this.ctx.fillStyle = 'rgba(5, 5, 5, 0.4)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.save();
+        if(this.shake > 0) this.ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
+        this.ctx.strokeStyle = CONFIG.colors.grid; this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        for(let i=0; i<this.width; i+=50) { this.ctx.moveTo(i, 0); this.ctx.lineTo(i, this.height); }
+        for(let i=0; i<this.height; i+=50) { this.ctx.moveTo(0, i); this.ctx.lineTo(this.width, i); }
+        this.ctx.stroke();
+        this.player.draw(this.ctx); this.ai.draw(this.ctx);
+        this.balls.forEach(b => b.draw(this.ctx));
+        this.particles.forEach(p => p.draw(this.ctx));
+        this.powerups.forEach(p => p.draw(this.ctx));
+        this.ctx.restore();
+    },
+    loop() { this.update(); this.draw(); requestAnimationFrame(this.loop); }
+};
+
+game.init();
+</script>
+</body>
+</html>
