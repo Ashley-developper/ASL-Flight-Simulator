@@ -1,803 +1,2169 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<link rel="manifest" href="manifest.json">
 <head>
     <meta charset="UTF-8">
-    <title>NEON PONG: ULTRA CHAOS</title>
-    <style> 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #050505;
-            overflow: hidden;
-            /* 更换为更有科技感的字体堆栈 */
-            font-family: "Segoe UI Black", "Arial Black", sans-serif;
-            user-select: none;
-            touch-action: none; /* 禁用系统默认手势，确保触控流畅 */
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEON PONG ULTIMATE - 究极优化版</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #050505 0%, #1a0a2e 100%);
+            overflow: hidden; font-family: "Segoe UI Black", sans-serif;
+            user-select: none; touch-action: manipulation; position: fixed;
         }
-        body::after {
-    content: "";
-    display: block;
-    height: 150vh;
-}
-        canvas {
-            display: block;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-        h1 {
-            color: #fff;
-            font-size: 100px;
-            text-transform: uppercase;
-            letter-spacing: 15px;
-            margin: 0;
-            text-shadow: 0 0 20px #0ff, 0 0 50px #0ff;
-            transform: skew(-10deg);
-        }
-        /* 响应式标题，防止手机端溢出 */
-        @media (max-width: 600px) {
-            h1 { font-size: 50px; letter-spacing: 5px; }
-            .score-board { font-size: 60px !important; gap: 50px !important; }
-        }
-        p {
-            color: #fff;
-            font-size: 24px;
-            margin-top: 20px;
-            text-shadow: 0 0 10px #0ff;
-        }
-        .score-board {
-            position: absolute;
-            top: 40px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 150px;
-            font-size: 100px;
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.1);
-            z-index: -1;
-        }
-        #player-score { color: #0ff; text-shadow: 0 0 30px #0ff; }
-        #ai-score { color: #f0f; text-shadow: 0 0 30px #f0f; }
         
-        #start-screen, #difficulty-screen, #game-over-screen {
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            border: 4px solid #fff;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
-            pointer-events: auto;
-            backdrop-filter: blur(15px);
-            transition: opacity 0.3s;
-            max-width: 80%;
+        :root {
+            --color-cyan: #0ff;
+            --color-magenta: #f0f;
+            --color-green: #0f0;
+            --color-orange: #f80;
+            --color-red: #f00;
+            --color-yellow: #ff0;
+            --color-purple: #a0f;
         }
+        
+        /* 主题系统 */
+        [data-theme="default"] {
+            --bg-primary: linear-gradient(135deg, #050505 0%, #1a0a2e 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,255,255,0.02));
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --accent-1: #0ff;
+            --accent-2: #f0f;
+        }
+        
+        [data-theme="neon-pink"] {
+            --bg-primary: linear-gradient(135deg, #2d0a3d 0%, #5a1a5a 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(255,0,150,0.1), rgba(255,0,150,0.02));
+            --text-primary: #fff;
+            --text-secondary: #dda;
+            --accent-1: #f0f;
+            --accent-2: #ff3366;
+        }
+        
+        [data-theme="dark-purple"] {
+            --bg-primary: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(100,50,200,0.1), rgba(100,50,200,0.02));
+            --text-primary: #ddd;
+            --text-secondary: #999;
+            --accent-1: #bb66ff;
+            --accent-2: #ff33ff;
+        }
+        
+        [data-theme="matrix"] {
+            --bg-primary: linear-gradient(135deg, #001100 0%, #003300 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(0,255,0,0.08), rgba(0,255,0,0.01));
+            --text-primary: #0f0;
+            --text-secondary: #080;
+            --accent-1: #0f0;
+            --accent-2: #00ff00;
+        }
+        
+        [data-theme="sunset"] {
+            --bg-primary: linear-gradient(135deg, #2d1b1b 0%, #5a2d2d 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(255,100,0,0.1), rgba(255,150,0,0.02));
+            --text-primary: #ffe0d0;
+            --text-secondary: #cc9966;
+            --accent-1: #ffaa33;
+            --accent-2: #ff6600;
+        }
+        
+        [data-theme="ice"] {
+            --bg-primary: linear-gradient(135deg, #0d2b3a 0%, #1a4d5a 100%);
+            --bg-canvas: linear-gradient(180deg, rgba(0,200,255,0.1), rgba(100,255,255,0.02));
+            --text-primary: #e0f2f7;
+            --text-secondary: #a0d0e0;
+            --accent-1: #00ddff;
+            --accent-2: #00ffff;
+        }
+        
+        body {
+            background: var(--bg-primary);
+        }
+        
+        canvas { 
+            display: block; width: 100%; height: 100%;
+            background: var(--bg-canvas);
+        }
+        
+        #ui-layer { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center; z-index: 1000;
+        }
+        
+        h1 { 
+            color: var(--text-primary); font-size: clamp(32px, 10vw, 100px); text-transform: uppercase;
+            letter-spacing: clamp(3px, 2vw, 15px); margin: 0;
+            text-shadow: 0 0 20px var(--accent-1), 0 0 50px var(--accent-1); 
+            transform: skew(-10deg);
+            animation: glitchPulse 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        @keyframes glitchPulse {
+            0%, 100% { transform: skew(-10deg) scale(1); }
+            50% { transform: skew(-10deg) scale(1.02); }
+        }
+        
+        p { 
+            color: var(--text-primary); font-size: clamp(14px, 4vw, 24px); margin-top: 10px;
+            text-shadow: 0 0 10px var(--accent-1);
+        }
+        
+        .score-board {
+            position: fixed; top: clamp(15px, 2vw, 30px); left: 0; width: 100%;
+            display: flex; justify-content: center; gap: clamp(40px, 15vw, 150px);
+            font-size: clamp(48px, 12vw, 100px); font-weight: 900;
+            color: rgba(255, 255, 255, 0.08); z-index: 100; pointer-events: none;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        #player-score { 
+            color: var(--accent-1); text-shadow: 0 0 30px var(--accent-1), 0 0 60px var(--accent-1);
+            filter: drop-shadow(0 0 15px var(--accent-1)); animation: pulse-main 1s ease-in-out infinite;
+        }
+        
+        #ai-score { 
+            color: var(--accent-2); text-shadow: 0 0 30px var(--accent-2), 0 0 60px var(--accent-2);
+            filter: drop-shadow(0 0 15px var(--accent-2)); animation: pulse-second 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-main {
+            0%, 100% { text-shadow: 0 0 30px var(--accent-1), 0 0 60px var(--accent-1); }
+            50% { text-shadow: 0 0 20px var(--accent-1), 0 0 40px var(--accent-1); }
+        }
+        
+        @keyframes pulse-second {
+            0%, 100% { text-shadow: 0 0 30px var(--accent-2), 0 0 60px var(--accent-2); }
+            50% { text-shadow: 0 0 20px var(--accent-2), 0 0 40px var(--accent-2); }
+        }
+        
+        .modal {
+            background: rgba(0, 0, 0, 0.92); padding: clamp(20px, 4vw, 50px);
+            border: 3px solid var(--accent-1); box-shadow: 0 0 80px var(--accent-1), inset 0 0 40px rgba(0, 255, 255, 0.1);
+            pointer-events: auto; backdrop-filter: blur(20px); border-radius: 12px;
+            max-width: 95vw; max-height: 95vh; overflow-y: auto;
+            animation: modalSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: scale(0.85) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
         .hidden { display: none !important; opacity: 0; pointer-events: none; }
         
         button {
-            background: transparent;
-            color: #0ff;
-            border: 3px solid #0ff;
-            padding: 20px 60px;
-            font-size: 32px;
-            cursor: pointer;
-            margin-top: 40px;
-            text-transform: uppercase;
-            font-weight: bold;
-            transition: all 0.2s;
-            box-shadow: 0 0 20px #0ff;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 255, 255, 0.05));
+            color: var(--accent-1); border: 2px solid var(--accent-1); 
+            padding: clamp(10px, 2.5vw, 20px) clamp(24px, 6vw, 60px);
+            font-size: clamp(14px, 3.5vw, 28px); cursor: pointer; margin-top: 12px;
+            text-transform: uppercase; font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 20px var(--accent-1), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            border-radius: 6px; font-family: inherit; letter-spacing: 1px;
         }
+        
+        button:active { transform: scale(0.92) translateY(2px); }
         button:hover {
-            background: #0ff;
-            color: #000;
-            box-shadow: 0 0 50px #0ff;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(0, 255, 255, 0.2));
+            color: #000; box-shadow: 0 0 60px var(--accent-1), inset 0 0 40px var(--accent-1);
+            transform: scale(1.05);
         }
-
-        /* 难度按钮专用样式 */
+        
+        .theme-selector {
+            position: fixed; top: clamp(12px, 2vw, 20px); left: clamp(12px, 2vw, 20px);
+            z-index: 101; pointer-events: auto;
+        }
+        
+        .theme-btn {
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            border: 2px solid var(--accent-1); margin: 8px; transition: all 0.3s;
+            box-shadow: 0 0 15px var(--accent-1);
+        }
+        
+        .theme-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--accent-1); }
+        
+        .theme-btn.default { background: linear-gradient(135deg, #0ff, #f0f); }
+        .theme-btn.neon-pink { background: linear-gradient(135deg, #f0f, #ff3366); }
+        .theme-btn.dark-purple { background: linear-gradient(135deg, #bb66ff, #ff33ff); }
+        .theme-btn.matrix { background: linear-gradient(135deg, #0f0, #00ff00); }
+        .theme-btn.sunset { background: linear-gradient(135deg, #ffaa33, #ff6600); }
+        .theme-btn.ice { background: linear-gradient(135deg, #00ddff, #00ffff); }
+        
         .diff-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 30px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px; margin-top: 25px;
         }
+        
         .diff-btn {
-            padding: 15px;
-            font-size: 18px;
-            margin: 0;
-            border-width: 2px;
+            padding: clamp(12px, 2vw, 20px) clamp(10px, 2vw, 15px);
+            font-size: clamp(14px, 2.5vw, 18px); margin: 0; border-width: 2px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative; overflow: hidden;
         }
-        .diff-btn.very-easy { color: #0f0; border-color: #0f0; box-shadow: 0 0 10px #0f0; }
-        .diff-btn.easy { color: #aff; border-color: #aff; box-shadow: 0 0 10px #aff; }
-        .diff-btn.medium { color: #ff0; border-color: #ff0; box-shadow: 0 0 10px #ff0; }
-        .diff-btn.hard { color: #f80; border-color: #f80; box-shadow: 0 0 10px #f80; }
-        .diff-btn.impossible { color: #f00; border-color: #f00; box-shadow: 0 0 10px #f00; grid-column: span 2; }
-
-        /* 角色卡片样式补充 */
+        
+        .diff-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: currentColor; opacity: 0.1; transition: left 0.3s; z-index: -1;
+        }
+        
+        .diff-btn:hover::before { left: 0; }
+        
+        .diff-btn.very-easy { color: #0f0; border-color: #0f0; box-shadow: 0 0 15px #0f0; }
+        .diff-btn.very-easy:hover { box-shadow: 0 0 40px #0f0, inset 0 0 30px rgba(0, 255, 0, 0.2); }
+        .diff-btn.easy { color: #aff; border-color: #aff; box-shadow: 0 0 15px #aff; }
+        .diff-btn.easy:hover { box-shadow: 0 0 40px #aff, inset 0 0 30px rgba(170, 255, 255, 0.2); }
+        .diff-btn.medium { color: #ff0; border-color: #ff0; box-shadow: 0 0 15px #ff0; }
+        .diff-btn.medium:hover { box-shadow: 0 0 40px #ff0, inset 0 0 30px rgba(255, 255, 0, 0.2); }
+        .diff-btn.hard { color: #f80; border-color: #f80; box-shadow: 0 0 15px #f80; }
+        .diff-btn.hard:hover { box-shadow: 0 0 40px #f80, inset 0 0 30px rgba(255, 128, 0, 0.2); }
+        .diff-btn.impossible {
+            color: #f00; border-color: #f00; box-shadow: 0 0 15px #f00;
+            animation: dangerPulse 0.8s ease-in-out infinite;
+        }
+        .diff-btn.impossible:hover {
+            box-shadow: 0 0 50px #f00, inset 0 0 30px rgba(255, 0, 0, 0.3);
+            animation: none;
+        }
+        
+        @keyframes dangerPulse {
+            0%, 100% { box-shadow: 0 0 15px #f00; transform: scale(1); }
+            50% { box-shadow: 0 0 30px #f00; transform: scale(1.02); }
+        }
+        
         .char-container {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-top: 30px;
-            flex-wrap: wrap;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 15px;
         }
+        
         .char-card {
-            border: 2px solid #444;
-            padding: 15px;
-            cursor: pointer;
-            transition: 0.3s;
-            background: rgba(255,255,255,0.05);
-            min-width: 120px;
-        }
-        .char-card.selected { border-color: #0ff; background: rgba(0, 255, 255, 0.2); }
-        .char-card.locked { opacity: 0.6; grayscale: 1; }
-        .char-name { font-weight: bold; font-size: 18px; color: #fff; }
-        .char-skill { font-size: 12px; color: #aaa; margin-top: 5px; }
-        .char-price { color: #ff0; margin-top: 5px; font-size: 14px; }
-
-        /* --- 优化：科技感大方的中间提示文字 --- */
-        #combo-display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            font-family: "Verdana", "Geneva", "Arial Black", sans-serif;
-            font-size: 90px;
-            color: #fff;
-            font-weight: 900;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 500;
-            text-shadow: 
-                3px 3px 0px #ff8800,
-                -1px -1px 0px #fff,
-                0 0 20px rgba(255, 255, 0, 0.8),
-                0 0 40px rgba(255, 0, 0, 0.5);
-            background: linear-gradient(180deg, #FFFFFF 0%, #FFEA00 50%, #FF9500 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            white-space: nowrap;
-            filter: drop-shadow(0 0 10px rgba(255,255,0,0.3));
-        }
-
-        .cool-pop {
-            animation: techPopAnim 1s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-        }
-
-        @keyframes techPopAnim {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; letter-spacing: 20px; }
-            20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; letter-spacing: 5px; }
-            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; letter-spacing: 2px; }
-            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; letter-spacing: 0px; }
-        }
-
-        #coin-display {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #ff0;
-            font-size: 30px;
-            text-shadow: 0 0 15px #ff0;
-            z-index: 100;
-        }
-        #skill-ready {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #0ff;
-            font-size: 24px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 0 0 10px #0ff;
-        }
-
-        #challenge-box {
-            position: absolute;
-            top: 140px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 400px;
-            text-align: center;
-            pointer-events: none;
-            z-index: 150;
-        }
-        @media (max-width: 500px) { #challenge-box { width: 80%; } }
-        #challenge-label {
-            color: #ff3333;
-            font-weight: bold;
-            font-size: 28px;
-            text-shadow: 0 0 20px #f00;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-        }
-        #progress-bg {
-            width: 100%;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #ff3333;
-            border-radius: 10px;
+            border: 2px solid #444; padding: clamp(12px, 2vw, 20px); cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(0, 255, 255, 0.02));
+            min-width: 130px; border-radius: 8px; text-align: center; position: relative;
             overflow: hidden;
         }
-        #progress-fill {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff8800);
-            box-shadow: 0 0 20px #f00;
-            transition: width 0.1s linear;
+        
+        .char-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, transparent 70%);
+            opacity: 0; transition: opacity 0.3s;
         }
-        .controls-hint {
-            color: #aaa;
-            margin-top: 20px;
-            font-size: 14px;
+        
+        .char-card:hover {
+            border-color: var(--accent-1); background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.05));
+            box-shadow: 0 0 30px var(--accent-1); transform: translateY(-5px);
+        }
+        
+        .char-card:hover::before { opacity: 1; }
+        
+        .char-card.selected {
+            border-color: var(--accent-1); background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 255, 0.1));
+            box-shadow: 0 0 40px var(--accent-1), inset 0 0 20px var(--accent-1);
+            animation: selectedGlow 0.6s ease-in-out infinite;
+        }
+        
+        @keyframes selectedGlow {
+            0%, 100% { box-shadow: 0 0 40px var(--accent-1), inset 0 0 20px var(--accent-1); }
+            50% { box-shadow: 0 0 60px var(--accent-1), inset 0 0 30px var(--accent-1); }
+        }
+        
+        .char-card.locked {
+            opacity: 0.5; grayscale: 1; cursor: not-allowed;
+            background: linear-gradient(135deg, rgba(100, 100, 100, 0.1), rgba(50, 50, 50, 0.05));
+        }
+        
+        .char-name { font-weight: 900; font-size: clamp(16px, 3vw, 20px); color: var(--text-primary);
+            letter-spacing: 1px; margin-bottom: 5px;
+        }
+        
+        .char-skill { font-size: clamp(11px, 2vw, 13px); color: var(--text-secondary); margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .char-price { color: #ffaa00; margin-top: 8px; font-size: clamp(12px, 2.5vw, 16px);
+            font-weight: bold;
+        }
+        
+        #combo-display {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            font-size: clamp(40px, 12vw, 80px); color: #fff; font-weight: 900;
+            letter-spacing: 3px; text-transform: uppercase; opacity: 0; pointer-events: none; z-index: 500;
+            text-shadow: 3px 3px 0px #ff8800, -1px -1px 0px #fff, 0 0 20px rgba(255, 255, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.5);
+            background: linear-gradient(180deg, #FFFFFF 0%, #FFEA00 50%, #FF9500 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap;
+            filter: drop-shadow(0 0 10px rgba(255,255,0,0.3));
+        }
+        
+        .cool-pop { animation: techPopAnim 1s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+        
+        @keyframes techPopAnim {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; letter-spacing: 20px; }
+            20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; letter-spacing: 5px; }
+            80% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; letter-spacing: 2px; }
+            100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; letter-spacing: 0px; }
+        }
+        
+        #coin-display {
+            position: fixed; top: clamp(12px, 2vw, 20px); right: clamp(12px, 2vw, 20px);
+            color: #ffaa00; font-size: clamp(16px, 4vw, 32px);
+            text-shadow: 0 0 20px #ffaa00, 0 0 40px rgba(255, 170, 0, 0.5); z-index: 100;
+            pointer-events: none; font-weight: bold; letter-spacing: 1px;
+            animation: coinGlow 1s ease-in-out infinite;
+        }
+        
+        @keyframes coinGlow {
+            0%, 100% { text-shadow: 0 0 20px #ffaa00, 0 0 40px rgba(255, 170, 0, 0.5); }
+            50% { text-shadow: 0 0 30px #ffaa00, 0 0 60px rgba(255, 170, 0, 0.8); }
+        }
+        
+        #skill-ready {
+            position: fixed; bottom: clamp(12px, 2vw, 30px); left: 50%; transform: translateX(-50%);
+            color: var(--accent-1); font-size: clamp(12px, 3vw, 18px); font-weight: bold; text-transform: uppercase;
+            letter-spacing: 1px; text-shadow: 0 0 15px var(--accent-1); z-index: 100; pointer-events: none;
+            animation: skillPulse 0.8s ease-in-out infinite;
+        }
+        
+        @keyframes skillPulse {
+            0%, 100% { text-shadow: 0 0 15px var(--accent-1); transform: translateX(-50%) scale(1); }
+            50% { text-shadow: 0 0 30px var(--accent-1); transform: translateX(-50%) scale(1.05); }
+        }
+        
+        #challenge-box {
+            position: fixed; top: clamp(80px, 10vw, 140px); left: 50%; transform: translateX(-50%);
+            width: clamp(200px, 90vw, 500px); text-align: center; pointer-events: none; z-index: 150;
+            background: rgba(0, 0, 0, 0.7); padding: clamp(12px, 2vw, 20px);
+            border: 2px solid #ff3333; border-radius: 8px; backdrop-filter: blur(10px);
+        }
+        
+        #challenge-label {
+            color: #ff3333; font-weight: 900; font-size: clamp(20px, 5vw, 32px);
+            text-shadow: 0 0 20px #f00, 0 0 40px rgba(255, 0, 0, 0.3); margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        #progress-bg {
+            width: 100%; height: clamp(16px, 3vw, 24px); background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #ff3333; border-radius: 8px; overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.2);
+        }
+        
+        #progress-fill {
+            width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff8800, #ffaa00);
+            box-shadow: 0 0 20px #f00; transition: width 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .controls-hint { color: #888; margin-top: 15px; font-size: clamp(11px, 2vw, 13px);
+            line-height: 1.5;
+        }
+        
+        .controls-hint strong { color: var(--accent-1); font-weight: bold; }
+        
+        .back-btn { border: none; font-size: clamp(12px, 2.5vw, 16px); color: #888;
+            background: transparent; box-shadow: none; margin-top: 15px; padding: 6px 12px;
+            text-transform: lowercase; letter-spacing: 0;
+        }
+        
+        .back-btn:hover { color: var(--accent-1); box-shadow: 0 0 20px var(--accent-1); }
+        
+        .stat-box { display: flex; justify-content: space-around; margin-top: 15px;
+            gap: 15px; flex-wrap: wrap;
+        }
+        
+        .stat-item { text-align: center; color: #aaa; }
+        
+        .stat-label { font-size: clamp(10px, 2vw, 12px); text-transform: uppercase;
+            color: #666; margin-bottom: 3px;
+        }
+        
+        .stat-value { font-size: clamp(16px, 4vw, 24px); font-weight: bold; color: var(--accent-1); }
+        
+        .leaderboard { width: 100%; margin-top: 20px; max-height: 200px; overflow-y: auto; }
+        
+        .lb-item { display: flex; justify-content: space-between; padding: 8px;
+            border-bottom: 1px solid #333; color: #aaa; font-size: 12px;
+        }
+        
+        .lb-rank { color: var(--accent-1); font-weight: bold; min-width: 30px; }
+        
+        .lb-score { color: #ffaa00; font-weight: bold; }
+        
+        .guide-btn, .achievements-btn, .daily-btn, .rank-btn, .stats-btn {
+            position: fixed; width: 50px; height: 50px; border-radius: 50%;
+            cursor: pointer; z-index: 99; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px; transition: all 0.3s; padding: 0; font-family: inherit;
+            font-weight: bold; border: 2px solid; background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 255, 0.1));
+        }
+        
+        .guide-btn { bottom: clamp(60px, 8vw, 80px); right: clamp(12px, 2vw, 20px);
+            border-color: var(--accent-1); color: var(--accent-1); box-shadow: 0 0 20px var(--accent-1);
+        }
+        
+        .achievements-btn { bottom: clamp(120px, 12vw, 140px); right: clamp(12px, 2vw, 20px);
+            border-color: #ffaa00; color: #ffaa00; box-shadow: 0 0 20px #ffaa00;
+            background: linear-gradient(135deg, rgba(255, 170, 0, 0.2), rgba(255, 170, 0, 0.1));
+        }
+        
+        .daily-btn { bottom: clamp(180px, 16vw, 200px); right: clamp(12px, 2vw, 20px);
+            border-color: #0f0; color: #0f0; box-shadow: 0 0 20px #0f0;
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 255, 0, 0.1));
+        }
+        
+        .rank-btn { bottom: clamp(240px, 20vw, 260px); right: clamp(12px, 2vw, 20px);
+            border-color: #f0f; color: #f0f; box-shadow: 0 0 20px #f0f;
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 0, 255, 0.1));
+        }
+        
+        .stats-btn { bottom: clamp(300px, 24vw, 320px); right: clamp(12px, 2vw, 20px);
+            border-color: #ff88ff; color: #ff88ff; box-shadow: 0 0 20px #ff88ff;
+            background: linear-gradient(135deg, rgba(255, 136, 255, 0.2), rgba(255, 136, 255, 0.1));
+        }
+        
+        .settings-btn { 
+            position: fixed; bottom: clamp(60px, 8vw, 80px); left: clamp(12px, 2vw, 20px);
+            width: 50px; height: 50px; border-radius: 50%;
+            border-color: #88ff88; color: #88ff88; box-shadow: 0 0 20px #88ff88;
+            background: linear-gradient(135deg, rgba(136, 255, 136, 0.2), rgba(136, 255, 136, 0.1));
+        }
+        
+        .guide-btn:hover, .achievements-btn:hover, .daily-btn:hover, .rank-btn:hover, .stats-btn:hover, .settings-btn:hover { 
+            transform: scale(1.1); 
+        }
+        
+        .guide-modal, .achievements-modal, .daily-modal, .rank-modal, .stats-modal {
+            max-height: 70vh; overflow-y: auto; font-size: clamp(12px, 2vw, 14px);
+            line-height: 1.6; color: #ccc;
+        }
+        
+        .guide-modal h2, .achievements-modal h2, .daily-modal h2, .rank-modal h2, .stats-modal h2 {
+            color: var(--accent-1); font-size: clamp(16px, 3vw, 20px); margin-top: 15px; margin-bottom: 8px;
+        }
+        
+        .guide-modal h3, .achievements-modal h3, .daily-modal h3, .rank-modal h3, .stats-modal h3 {
+            color: #aff; font-size: clamp(13px, 2.5vw, 16px); margin-top: 12px; margin-bottom: 6px;
+        }
+        
+        .guide-modal ul, .achievements-modal ul, .daily-modal ul, .rank-modal ul, .stats-modal ul {
+            margin: 8px 0; padding-left: 20px;
+        }
+        
+        .guide-modal li, .achievements-modal li, .daily-modal li, .rank-modal li, .stats-modal li {
+            margin: 4px 0;
+        }
+        
+        .achievement-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px; margin-top: 20px;
+        }
+        
+        .achievement-item {
+            border: 2px solid #444; border-radius: 8px; padding: 10px; text-align: center;
+            cursor: pointer; transition: all 0.3s;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255, 170, 0, 0.02));
+        }
+        
+        .achievement-item.unlocked {
+            border-color: #ffaa00; background: linear-gradient(135deg, rgba(255, 170, 0, 0.1), rgba(255, 170, 0, 0.05));
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
+        }
+        
+        .achievement-item.locked { opacity: 0.4; grayscale: 1; }
+        
+        .achievement-icon { font-size: 32px; margin-bottom: 8px; }
+        
+        .achievement-name { font-size: 12px; color: #aaa; font-weight: bold; margin-bottom: 4px; }
+        
+        .daily-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px; margin-top: 20px;
+        }
+        
+        .daily-item {
+            border: 2px solid #444; border-radius: 8px; padding: 10px; text-align: center;
+            transition: all 0.3s; background: linear-gradient(135deg, rgba(0, 255, 0, 0.02), rgba(0, 255, 0, 0.01));
+        }
+        
+        .daily-item.checked {
+            border-color: #0f0; background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+        
+        .daily-day { font-size: 18px; font-weight: bold; color: #0f0; margin-bottom: 4px; }
+        
+        .daily-reward { font-size: 12px; color: #aaa; }
+        
+        .rank-display {
+            text-align: center; margin: 20px 0; padding: 20px; border: 2px solid #f0f;
+            border-radius: 8px; background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(255, 0, 255, 0.05));
+        }
+        
+        .rank-name { color: #f0f; font-size: clamp(20px, 5vw, 28px); font-weight: bold; margin-bottom: 10px; }
+        
+        .rank-progress {
+            width: 100%; height: 24px; background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #f0f; border-radius: 12px; overflow: hidden; margin: 15px 0;
+        }
+        
+        .rank-fill { height: 100%; background: linear-gradient(90deg, #f0f, #f00); transition: width 0.3s; }
+        
+        .rank-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        
+        .rank-item { display: flex; justify-content: space-between; padding: 10px;
+            border: 1px solid #333; border-radius: 4px; background: rgba(255, 0, 255, 0.05);
+        }
+        
+        .rank-item-name { color: #aaa; font-weight: bold; }
+        
+        .rank-item-req { color: #666; font-size: 12px; }
+        
+        .speed-indicator {
+            position: fixed; top: clamp(80px, 12vw, 120px); left: clamp(12px, 2vw, 20px);
+            width: 120px; height: 60px; background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--accent-1); border-radius: 8px; padding: 8px; 
+            font-size: 12px; color: var(--accent-1);
+            z-index: 90; pointer-events: none;
+        }
+        
+        .speed-label { font-weight: bold; margin-bottom: 4px; }
+        
+        .speed-bar { width: 100%; height: 16px; background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent-1); border-radius: 4px; overflow: hidden;
+        }
+        
+        .speed-fill { height: 100%; background: linear-gradient(90deg, #0f0, #ff0, #f00); transition: width 0.1s; }
+        
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+        
+        .stat-card {
+            border: 2px solid #444; border-radius: 8px; padding: 15px; text-align: center;
+            background: linear-gradient(135deg, rgba(255,136,255,0.1), rgba(255,136,255,0.05));
+        }
+        
+        .stat-card.highlight {
+            border-color: #ff88ff; background: linear-gradient(135deg, rgba(255,136,255,0.2), rgba(255,136,255,0.1));
+            box-shadow: 0 0 20px rgba(255,136,255,0.3);
+        }
+        
+        .stat-card-title { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+        
+        .stat-card-value { font-size: 28px; font-weight: bold; color: #ff88ff; }
+        
+        .settings-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+        
+        .setting-item {
+            border: 2px solid #444; border-radius: 8px; padding: 15px; text-align: center;
+            background: linear-gradient(135deg, rgba(136,255,136,0.1), rgba(136,255,136,0.05));
+        }
+        
+        .setting-label { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+        
+        .setting-value { font-size: 16px; font-weight: bold; color: #88ff88; margin-bottom: 10px; }
+        
+        .toggle-switch {
+            display: inline-flex; align-items: center; cursor: pointer;
+            background: rgba(255,255,255,0.1); border-radius: 20px; padding: 4px 6px;
+            border: 1px solid #88ff88;
+        }
+        
+        .toggle-switch.on { background: rgba(136,255,136,0.3); }
+        
+        .toggle-circle {
+            width: 18px; height: 18px; background: #88ff88; border-radius: 50%;
+            transition: margin 0.3s; margin-right: 4px;
+        }
+        
+        .toggle-switch.on .toggle-circle { margin-right: 0; margin-left: 4px; }
+        
+        .slider-container { margin: 10px 0; }
+        
+        .slider { width: 100%; height: 6px; border-radius: 3px; background: #444;
+            outline: none; -webkit-appearance: none; appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+            border-radius: 50%; background: #88ff88; cursor: pointer; box-shadow: 0 0 10px #88ff88;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%; background: #88ff88;
+            cursor: pointer; border: none; box-shadow: 0 0 10px #88ff88;
+        }
+        
+        @media (max-width: 480px) {
+            .modal { padding: clamp(12px, 3vw, 30px); }
+            .diff-container { grid-template-columns: repeat(2, 1fr); }
+            .char-container { grid-template-columns: repeat(2, 1fr); }
+            .score-board { gap: clamp(20px, 10vw, 80px); }
+        }
+        
+        @media (max-width: 360px) {
+            h1 { font-size: clamp(24px, 8vw, 40px); }
+            .diff-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
-<body>
-
-    <div id="coin-display">COINS: 0</div>
+<body data-theme="default">
+    <div id="coin-display">💰 0</div>
     <div id="skill-ready"></div>
-
-    <div id="challenge-box" class="hidden">
-        <div id="challenge-label">TIME CHALLENGE: 0/2</div>
-        <div id="progress-bg">
-            <div id="progress-fill"></div>
-        </div>
+    
+    <button class="guide-btn" onclick="game.showGuide()" title="Game Guide">ℹ️</button>
+    <button class="achievements-btn" onclick="game.showAchievements()" title="Achievements">🏆</button>
+    <button class="daily-btn" onclick="game.showDaily()" title="Daily Check-in">📅</button>
+    <button class="rank-btn" onclick="game.showRank()" title="Ranking Tier">⭐</button>
+    <button class="stats-btn" onclick="game.showStats()" title="Game Stats">📊</button>
+    <button class="settings-btn" onclick="game.showSettings()" title="Settings">⚙️</button>
+    
+    <div class="speed-indicator hidden">
+        <div class="speed-label">球速</div>
+        <div class="speed-bar"><div class="speed-fill"></div></div>
     </div>
-
+    
+    <div id="challenge-box" class="hidden">
+        <div id="challenge-label">⚡ TIME CHALLENGE ⚡</div>
+        <div id="challenge-info">击中球 <span id="challenge-current">0</span>/<span id="challenge-target">3</span></div>
+        <div id="progress-bg"><div id="progress-fill"></div></div>
+    </div>
+    
     <div class="score-board">
         <div id="player-score">0</div>
         <div id="ai-score">0</div>
     </div>
-
+    
     <div id="ui-layer">
-        <div id="start-screen">
-            <h1>Neon Pong</h1>
-            <p>Extreme Physics & Chaos Mode</p>
+        <div id="start-screen" class="modal">
+            <h1>⚡ NEON PONG ⚡</h1>
+            <p>ULTIMATE OPTIMIZED VERSION 2024</p>
+            <p style="font-size: 12px; color: #888; margin-top: 3px;">Select Your Character</p>
             <div class="char-container" id="char-list"></div>
-            <button onclick="game.showDifficulty()">Select Difficulty</button>
-            <div class="controls-hint">Move: Mouse/Touch • Skill: Space/Double Tap</div>
-        </div>
-
-        <div id="difficulty-screen" class="hidden">
-            <h1>SELECT MODE</h1>
-            <div class="diff-container">
-                <button class="diff-btn very-easy" onclick="game.start('very-easy')">VERY EASY</button>
-                <button class="diff-btn easy" onclick="game.start('easy')">EASY</button>
-                <button class="diff-btn medium" onclick="game.start('medium')">MEDIUM</button>
-                <button class="diff-btn hard" onclick="game.start('hard')">HARD</button>
-                <button class="diff-btn impossible" onclick="game.start('impossible')">IMPOSSIBLE</button>
+            <button onclick="game.showDifficulty()">⚡ Start Game ⚡</button>
+            <div class="controls-hint">
+                <div><strong>Move:</strong> Mouse / Touch</div>
+                <div><strong>Skill:</strong> Spacebar / Double Tap</div>
             </div>
-            <button style="border:none; font-size:16px;" onclick="game.backToStart()">Back</button>
         </div>
-
-        <div id="game-over-screen" class="hidden">
+        
+        <div id="difficulty-screen" class="hidden modal">
+            <h1>⚙️ Select Difficulty ⚙️</h1>
+            <div class="diff-container">
+                <button class="diff-btn very-easy" onclick="game.start('very-easy')">🟢 Very Easy</button>
+                <button class="diff-btn easy" onclick="game.start('easy')">🔵 Easy</button>
+                <button class="diff-btn medium" onclick="game.start('medium')">🟡 Normal</button>
+                <button class="diff-btn hard" onclick="game.start('hard')">🟠 Hard</button>
+                <button class="diff-btn impossible" onclick="game.start('impossible')">🔴 Impossible</button>
+            </div>
+            <button class="back-btn" onclick="game.backToStart()">← Back</button>
+        </div>
+        
+        <div id="game-over-screen" class="hidden modal">
             <h1 id="winner-text">YOU WIN</h1>
             <p id="final-score">Score: 0 - 0</p>
-            <p id="coin-earned" style="color:#ff0; font-size: 32px;">+0 COINS</p>
-            <button onclick="game.showDifficulty()">Play Again</button>
+            <div class="stat-box">
+                <div class="stat-item">
+                    <div class="stat-label">Reward</div>
+                    <div class="stat-value" id="coin-earned">+0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Coins</div>
+                    <div class="stat-value" id="total-coins">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Victories</div>
+                    <div class="stat-value" id="total-wins">0</div>
+                </div>
+            </div>
+            <div id="leaderboard" class="leaderboard"></div>
+            <button onclick="game.showDifficulty()">🔄 Play Again</button>
+            <button class="back-btn" onclick="game.backToStart()">← Main Menu</button>
         </div>
-        <div id="combo-display">TWO BALLS!</div>
+
+        <div id="guide-screen" class="hidden modal">
+            <h1>📖 Game Guide</h1>
+            <div class="guide-modal">
+                <h2>🎮 Basic Controls</h2>
+                <ul>
+                    <li><strong>Move Paddle:</strong> Move mouse or drag screen</li>
+                    <li><strong>Use Skill:</strong> Press spacebar or double tap</li>
+                    <li><strong>Goal:</strong> Score 10 points before opponent</li>
+                </ul>
+
+                <h2>⚡ 6 Super Characters</h2>
+                <h3>1️⃣ Neon Hero (Free)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Lightning Strike - Speed up ball</li>
+                    <li><strong>Type:</strong> Offensive, great for attacks</li>
+                </ul>
+
+                <h3>2️⃣ Shadow (50 Coins)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Shadow Clone - Confuse opponent</li>
+                    <li><strong>Type:</strong> Control, increase difficulty</li>
+                </ul>
+
+                <h3>3️⃣ Inferno (100 Coins)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Burn Collision - Enhance & accelerate ball</li>
+                    <li><strong>Type:</strong> Hybrid, balanced offense & defense</li>
+                </ul>
+
+                <h3>4️⃣ Phantom (150 Coins)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Ghost Wave - Invisible ball</li>
+                    <li><strong>Type:</strong> Defensive, evade opponent</li>
+                </ul>
+
+                <h3>5️⃣ Titan (200 Coins)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Heavy Impact - Enlarge paddle</li>
+                    <li><strong>Type:</strong> Defensive, increase coverage</li>
+                </ul>
+
+                <h3>6️⃣ Cyber Hero (300 Coins)</h3>
+                <ul>
+                    <li><strong>Skill:</strong> Data Storm - Duplicate balls</li>
+                    <li><strong>Type:</strong> Ultimate, extreme difficulty</li>
+                </ul>
+
+                <h2>🎁 Power-Up System</h2>
+                <ul>
+                    <li><strong>x3 Multi Ball:</strong> Create extra balls, higher difficulty</li>
+                    <li><strong>BIG Paddle:</strong> Enlarge hit range, defensive tool</li>
+                    <li><strong>SLOW:</strong> Reduce ball speed, turn around games</li>
+                    <li><strong>BOOST:</strong> Weaken opponent response</li>
+                </ul>
+
+                <h2>💰 Coin System</h2>
+                <ul>
+                    <li><strong>Get Coins:</strong> After each game match ends</li>
+                    <li><strong>Formula:</strong> Score×25 + Victory Bonus(250/40)</li>
+                    <li><strong>Use For:</strong> Unlock new characters & skills</li>
+                </ul>
+
+                <h2>⚡ Time Challenge</h2>
+                <ul>
+                    <li><strong>Trigger:</strong> Random during gameplay</li>
+                    <li><strong>Goal:</strong> Hit 3 balls within 700ms</li>
+                    <li><strong>Reward:</strong> Extra 80 coins</li>
+                </ul>
+
+                <h2>🎯 Difficulty Explanation</h2>
+                <ul>
+                    <li><strong>Very Easy:</strong> Slow AI response, perfect practice</li>
+                    <li><strong>Easy:</strong> Casual entertainment difficulty</li>
+                    <li><strong>Normal:</strong> Standard game experience</li>
+                    <li><strong>Hard:</strong> Quick AI, requires skill</li>
+                    <li><strong>Impossible:</strong> Extreme challenge, expert only</li>
+                </ul>
+            </div>
+            <button class="back-btn" onclick="game.hideGuide()">← Close</button>
+        </div>
+
+        <div id="achievements-screen" class="hidden modal">
+            <h1>🏆 Achievements</h1>
+            <div class="achievements-modal">
+                <p id="achievement-progress">Unlocked 0/12 achievements</p>
+                <div class="achievement-grid" id="achievement-list"></div>
+            </div>
+            <button class="back-btn" onclick="game.hideAchievements()">← Close</button>
+        </div>
+
+        <div id="daily-screen" class="hidden modal">
+            <h1>📅 Daily Check-in</h1>
+            <div class="daily-modal">
+                <p id="daily-info">Streak: <span id="daily-streak">0</span> Days</p>
+                <div class="daily-grid" id="daily-list"></div>
+            </div>
+            <button class="back-btn" onclick="game.hideDaily()">← Close</button>
+        </div>
+
+        <div id="rank-screen" class="hidden modal">
+            <h1>⭐ Ranking Tier</h1>
+            <div class="rank-modal">
+                <div class="rank-display">
+                    <div class="rank-name" id="rank-name">Beginner</div>
+                    <div class="rank-progress">
+                        <div class="rank-fill" id="rank-fill"></div>
+                    </div>
+                    <div id="rank-info">Wins: 0 / Next Tier: 10</div>
+                </div>
+                <h2>Tier Breakdown</h2>
+                <div class="rank-list" id="rank-list"></div>
+            </div>
+            <button class="back-btn" onclick="game.hideRank()">← Close</button>
+        </div>
+        
+        <div id="stats-screen" class="hidden modal">
+            <h1>📊 Game Stats</h1>
+            <div class="stats-modal">
+                <div class="stats-grid" id="stats-grid"></div>
+            </div>
+            <button class="back-btn" onclick="game.hideStats()">← Close</button>
+        </div>
+        
+        <div id="settings-screen" class="hidden modal">
+            <h1>⚙️ Settings & Themes</h1>
+            <div class="stats-modal">
+                <h2>🎨 Choose Theme</h2>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <button class="theme-btn default" onclick="game.setTheme('default')" title="Default" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Default</div>
+                    </div>
+                    <div class="setting-item">
+                        <button class="theme-btn neon-pink" onclick="game.setTheme('neon-pink')" title="Pink" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Pink</div>
+                    </div>
+                    <div class="setting-item">
+                        <button class="theme-btn dark-purple" onclick="game.setTheme('dark-purple')" title="Purple" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Purple</div>
+                    </div>
+                    <div class="setting-item">
+                        <button class="theme-btn matrix" onclick="game.setTheme('matrix')" title="Matrix" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Matrix</div>
+                    </div>
+                    <div class="setting-item">
+                        <button class="theme-btn sunset" onclick="game.setTheme('sunset')" title="Sunset" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Sunset</div>
+                    </div>
+                    <div class="setting-item">
+                        <button class="theme-btn ice" onclick="game.setTheme('ice')" title="Ice" style="width: 60px; height: 60px;"></button>
+                        <div class="setting-label">Ice</div>
+                    </div>
+                </div>
+                
+                <h2>🎮 Performance</h2>
+                <div class="setting-item">
+                    <div class="setting-label">Particle Effects</div>
+                    <div class="toggle-switch" id="particle-toggle" onclick="game.toggleSetting('particles')">
+                        <div class="toggle-circle"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Sound Effects</div>
+                    <div class="toggle-switch on" id="sound-toggle" onclick="game.toggleSetting('sound')">
+                        <div class="toggle-circle"></div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Screen Shake</div>
+                    <div class="toggle-switch on" id="shake-toggle" onclick="game.toggleSetting('shake')">
+                        <div class="toggle-circle"></div>
+                    </div>
+                </div>
+                
+                <h2>🎯 Gameplay</h2>
+                <div class="setting-item">
+                    <div class="setting-label">UI Brightness</div>
+                    <div class="slider-container">
+                        <input type="range" min="50" max="150" value="100" class="slider" id="brightness-slider" oninput="game.setBrightness(this.value)">
+                        <div class="setting-value" id="brightness-value">100%</div>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">AI Difficulty Boost</div>
+                    <div class="slider-container">
+                        <input type="range" min="0" max="100" value="0" class="slider" id="boost-slider" oninput="game.setDifficultyBoost(this.value)">
+                        <div class="setting-value" id="boost-value">0%</div>
+                    </div>
+                </div>
+                
+                <h2>💾 Data</h2>
+                <div class="setting-item">
+                    <button onclick="game.exportData()" style="width: 100%; padding: 10px; background: #0ff; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📥 Export Data</button>
+                </div>
+                <div class="setting-item">
+                    <button onclick="game.resetData()" style="width: 100%; padding: 10px; background: #f00; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🔄 Reset All Data</button>
+                </div>
+            </div>
+            <button class="back-btn" onclick="game.hideSettings()">← Close</button>
+        </div>
+        
+        <div id="combo-display">COMBO!</div>
     </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-<script>
-const AudioEngine = {
-    ctx: null,
-    init() {
-        if(this.ctx) return;
-        window.AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioContext();
-    },
-    playTone(freq, type, duration, vol = 0.1) {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + duration);
-        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + duration);
-    },
-    playHit() { this.playTone(400 + Math.random() * 200, 'square', 0.1, 0.1); },
-    playWall() { this.playTone(200, 'sine', 0.1, 0.1); },
-    playScore(isPlayer) { 
-        if(isPlayer) {
-            this.playTone(600, 'triangle', 0.2, 0.2); 
-            setTimeout(() => this.playTone(800, 'triangle', 0.4, 0.2), 100);
-        } else {
-            this.playTone(150, 'sawtooth', 0.5, 0.2); 
-        }
-    },
-    playPowerUp() { this.playTone(1200, 'sine', 0.3, 0.15); }
-};
-
-const CHARACTERS = [
-    { id: 'neon', name: 'NEON', skill: 'Swift Strike', price: 0, color: '#0ff', ability: 'speed' },
-    { id: 'phantom', name: 'PHANTOM', skill: 'Ghost Ripple', price: 100, color: '#f0f', ability: 'stealth' },
-    { id: 'titan', name: 'TITAN', skill: 'Heavy Impact', price: 250, color: '#0f0', ability: 'size' }
-];
-
-let gameState = {
-    coins: parseInt(localStorage.getItem('pong_coins')) || 0,
-    unlocked: JSON.parse(localStorage.getItem('pong_unlocked')) || ['neon'],
-    selected: 'neon'
-};
-
-const CONFIG = {
-    paddleWidth: 20,
-    paddleHeight: 110,
-    ballSpeed: 12,      
-    ballMaxSpeed: 30,   
-    spinFactor: 0.2,    
-    friction: 0.99,
-    colors: { player: '#0ff', ai: '#f0f', ball: '#fff', grid: '#1a1a1a' }
-};
-
-// --- 大幅下调了前三个难度的参数 ---
-const DIFFICULTIES = {
-    'very-easy': { speed: 0.04, error: 150, predict: false },
-    'easy': { speed: 0.08, error: 80, predict: false },
-    'medium': { speed: 0.15, error: 40, predict: true },
-    'hard': { speed: 0.35, error: 10, predict: true },
-    'impossible': { speed: 0.95, error: 0, predict: true }
-};
-
-function lerp(start, end, amt) { return (1 - amt) * start + amt * end; }
-function clamp(num, min, max) { return Math.min(Math.max(num, min), max); }
-
-class Particle {
-    constructor(x, y, color, speed) {
-        this.x = x; this.y = y; this.color = color;
-        const angle = Math.random() * Math.PI * 2;
-        const velocity = Math.random() * speed;
-        this.vx = Math.cos(angle) * velocity;
-        this.vy = Math.sin(angle) * velocity;
-        this.life = 1.0;
-        this.decay = 0.02 + Math.random() * 0.03;
-    }
-    update() { this.x += this.vx; this.y += this.vy; this.life -= this.decay; }
-    draw(ctx) {
-        ctx.globalAlpha = this.life;
-        ctx.fillStyle = this.color;
-        ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1.0;
-    }
-}
-
-class PowerUp {
-    constructor(x, y) {
-        this.x = x; this.y = y; this.radius = 18;
-        this.active = true; this.type = Math.floor(Math.random() * 3); 
-        this.pulse = 0;
-    }
-    draw(ctx) {
-        if(!this.active) return;
-        this.pulse += 0.1;
-        const glow = 15 + Math.sin(this.pulse) * 10;
-        ctx.shadowBlur = glow;
-        if (this.type === 0) { ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; }
-        else if (this.type === 1) { ctx.fillStyle = '#0f0'; ctx.shadowColor = '#0f0'; }
-        else { ctx.fillStyle = '#00f'; ctx.shadowColor = '#00f'; }
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#000'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const label = ['x3', 'BIG', 'slo'][this.type];
-        ctx.fillText(label, this.x, this.y);
-    }
-}
-
-class Ball {
-    constructor(x, y) {
-        this.reset(x, y);
-        this.trail = [];
-        this.opacity = 1;
-        this.ghostMode = false;
-    }
-    reset(x, y) {
-        this.x = x; this.y = y;
-        this.speed = CONFIG.ballSpeed;
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        this.vx = dir * this.speed;
-        this.vy = (Math.random() * 2 - 1) * this.speed;
-        this.radius = 10; this.spin = 0; this.active = true;
-    }
-    update() {
-        if (!this.active) return;
-        this.vy += this.spin * 0.08;
-        if(this.ghostMode) this.vy += Math.sin(Date.now() * 0.01) * 0.8;
-        this.spin *= 0.99;
-        this.x += this.vx; this.y += this.vy;
-        this.trail.push({x: this.x, y: this.y, alpha: 1.0});
-        if(this.trail.length > 15) this.trail.shift();
-        this.trail.forEach(t => t.alpha -= 0.08);
-        if (this.y - this.radius < 0 || this.y + this.radius > game.height) {
-            this.vy *= -1.02;
-            this.y = clamp(this.y, this.radius, game.height - this.radius);
-            game.shakeScreen(6); game.spawnParticles(this.x, this.y, '#fff');
-            AudioEngine.playWall();
-        }
-    }
-    draw(ctx) {
-        if (!this.active) return;
-        this.trail.forEach((t, i) => {
-            ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha * 0.4 * this.opacity})`;
-            ctx.beginPath(); ctx.arc(t.x, t.y, this.radius * (i/15), 0, Math.PI*2); ctx.fill();
-        });
-        ctx.shadowBlur = 25; ctx.shadowColor = CONFIG.colors.ball;
-        ctx.globalAlpha = this.opacity; ctx.fillStyle = CONFIG.colors.ball;
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    }
-}
-
-class Paddle {
-    constructor(isPlayer) {
-        this.isPlayer = isPlayer;
-        this.width = CONFIG.paddleWidth; this.height = CONFIG.paddleHeight;
-        this.x = isPlayer ? 30 : 0; this.y = 0;
-        this.vy = 0; this.lastY = 0; this.color = isPlayer ? CONFIG.colors.player : CONFIG.colors.ai;
-        this.score = 0; this.heightMod = 0; this.skillCooldown = 0;
-    }
-    update() {
-        this.vy = this.y - this.lastY;
-        this.lastY = this.y;
-        if (this.heightMod > 0) this.heightMod -= 0.3;
-        if (this.skillCooldown > 0) {
-            this.skillCooldown--;
-            if(this.isPlayer) document.getElementById('skill-ready').innerText = `SKILL CD: ${Math.ceil(this.skillCooldown/60)}S`;
-        } else if(this.isPlayer && game.running) {
-            document.getElementById('skill-ready').innerText = "SKILL READY [SPACE/DBL TAP]";
-        }
-    }
-    draw(ctx) {
-        ctx.shadowBlur = 30; ctx.shadowColor = this.color;
-        ctx.fillStyle = this.color;
-        const h = this.height + this.heightMod;
-        ctx.beginPath();
-        if (this.isPlayer) {
-            ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.width, this.y + 10);
-            ctx.lineTo(this.x + this.width, this.y + h - 10); ctx.lineTo(this.x, this.y + h);
-        } else {
-            ctx.moveTo(this.x + this.width, this.y); ctx.lineTo(this.x, this.y + 10);
-            ctx.lineTo(this.x, this.y + h - 10); ctx.lineTo(this.x + this.width, this.y + h);
-        }
-        ctx.fill();
-        ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
-        ctx.fillRect(this.x + (this.isPlayer?5:10), this.y + 10, 4, h - 20);
-    }
-}
-
-const game = {
-    canvas: document.getElementById('gameCanvas'),
-    ctx: document.getElementById('gameCanvas').getContext('2d'),
-    width: 0, height: 0, running: false,
-    player: new Paddle(true), ai: new Paddle(false),
-    balls: [], particles: [], powerups: [],
-    shake: 0, mouseY: 0,
-    lastTapTime: 0,
-    currentDifficulty: 'medium',
-
-    challenge: {
-        active: false,
-        timer: 0,
-        maxTime: 720,
-        target: 2,
-        current: 0
-    },
     
-    init() {
-        window.addEventListener('resize', () => this.resize());
-        window.addEventListener('mousemove', e => this.mouseY = e.clientY);
-        window.addEventListener('touchstart', e => {
-            this.handleTouch(e);
-            const now = Date.now();
-            if (now - this.lastTapTime < 300) this.useSkill();
-            this.lastTapTime = now;
-        }, { passive: false });
-        window.addEventListener('touchmove', e => {
-            this.handleTouch(e);
-            e.preventDefault();
-        }, { passive: false });
-        window.addEventListener('keydown', e => { if(e.code === 'Space') this.useSkill(); });
-        this.resize(); this.renderChars(); this.updateCoinUI();
-        this.loop = this.loop.bind(this);
-        requestAnimationFrame(this.loop);
-    },
-    handleTouch(e) { if (e.touches.length > 0) this.mouseY = e.touches[0].clientY; },
-    resize() {
-        this.width = window.innerWidth; this.height = window.innerHeight;
-        this.canvas.width = this.width; this.canvas.height = this.height;
-        this.ai.x = this.width - 50;
-    },
-    renderChars() {
-        const container = document.getElementById('char-list');
-        container.innerHTML = '';
-        CHARACTERS.forEach(char => {
-            const isUnlocked = gameState.unlocked.includes(char.id);
-            const card = document.createElement('div');
-            card.className = `char-card ${gameState.selected === char.id ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`;
-            card.innerHTML = `
-                <div class="char-name">${char.name}</div>
-                <div class="char-skill">${char.skill}</div>
-                ${!isUnlocked ? `<div class="char-price">💰 ${char.price}</div>` : ''}
-            `;
-            card.onclick = (e) => { e.stopPropagation(); this.selectChar(char); };
-            container.appendChild(card);
-        });
-    },
-    selectChar(char) {
-        if (gameState.unlocked.includes(char.id)) {
-            gameState.selected = char.id;
-            this.player.color = char.color;
-        } else if (gameState.coins >= char.price) {
-            gameState.coins -= char.price;
-            gameState.unlocked.push(char.id);
-            gameState.selected = char.id;
-            this.player.color = char.color;
-            this.saveProgress();
-            this.updateCoinUI();
-        }
-        this.renderChars();
-    },
-    saveProgress() {
-        localStorage.setItem('pong_coins', gameState.coins);
-        localStorage.setItem('pong_unlocked', JSON.stringify(gameState.unlocked));
-    },
-    showCoolText(text) {
-        const el = document.getElementById('combo-display');
-        el.innerText = text;
-        el.classList.remove('cool-pop');
-        void el.offsetWidth; 
-        el.classList.add('cool-pop');
-    },
-    showDifficulty() {
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('game-over-screen').classList.add('hidden');
-        document.getElementById('difficulty-screen').classList.remove('hidden');
-    },
-    backToStart() {
-        document.getElementById('difficulty-screen').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
-    },
-    useSkill() {
-        if (!this.running || this.player.skillCooldown > 0) return;
-        const char = CHARACTERS.find(c => c.id === gameState.selected);
-        if (char.ability === 'stealth') {
-            this.balls.forEach(b => { if(b.vx < 0) { b.opacity = 0.05; b.ghostMode = true; } });
-            this.showCoolText("PHANTOM STRIKE!");
-            setTimeout(() => this.balls.forEach(b => { b.opacity = 1; b.ghostMode = false; }), 3000);
-        } else if (char.ability === 'size') {
-            this.player.heightMod = 200;
-            this.showCoolText("TITAN MODE!");
-        } else if (char.ability === 'speed') {
-            this.balls.forEach(b => { if(b.vx > 0) b.vx *= 1.8; });
-            this.showCoolText("NEON RUSH!");
-        }
-        this.player.skillCooldown = 480;
-        AudioEngine.playPowerUp();
-        this.shakeScreen(15);
-    },
-    startChallenge() {
-        if(this.challenge.active || !this.running) return;
-        this.challenge.active = true;
-        this.challenge.current = 0;
-        this.challenge.timer = this.challenge.maxTime;
-        document.getElementById('challenge-box').classList.remove('hidden');
-        this.showCoolText("TWO BALLS! CHAOS");
-        this.shakeScreen(20);
-        const b2 = new Ball(this.width/2, this.height/2);
-        b2.vx *= -1; 
-        this.balls.push(b2);
-    },
-    endChallenge(success) {
-        this.challenge.active = false;
-        document.getElementById('challenge-box').classList.add('hidden');
-        if (success) {
-            gameState.coins += 80;
-            this.updateCoinUI();
-            this.showCoolText("COMPLETE!");
-            AudioEngine.playPowerUp();
-        }
-    },
-    start(diff = 'medium') {
-        this.currentDifficulty = diff;
-        AudioEngine.init();
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('difficulty-screen').classList.add('hidden');
-        document.getElementById('game-over-screen').classList.add('hidden');
-        this.player.score = 0; this.ai.score = 0;
-        this.updateScoreUI();
-        this.balls = [new Ball(this.width/2, this.height/2)];
-        this.challenge.active = false;
-        this.running = true;
-    },
-    gameOver(winnerText) {
-        this.running = false;
-        const reward = this.player.score * 15 + (winnerText.includes("WIN") ? 150 : 50);
-        gameState.coins += reward;
-        this.saveProgress();
-        this.updateCoinUI();
-        document.getElementById('winner-text').innerText = winnerText;
-        document.getElementById('winner-text').style.color = winnerText.includes("WIN") ? "#0ff" : "#f0f";
-        document.getElementById('final-score').innerText = `${this.player.score} - ${this.ai.score}`;
-        document.getElementById('coin-earned').innerText = `+${reward} COINS`;
-        document.getElementById('game-over-screen').classList.remove('hidden');
-        document.getElementById('skill-ready').innerText = "";
-        document.getElementById('challenge-box').classList.add('hidden');
-        this.renderChars();
-    },
-    shakeScreen(amount) { this.shake = amount; },
-    spawnParticles(x, y, color, count = 12) {
-        for(let i=0; i<count; i++) this.particles.push(new Particle(x, y, color, 7));
-    },
-    spawnPowerUp() {
-        const x = this.width/2 + (Math.random()*400 - 200);
-        const y = Math.random() * (this.height - 100) + 50;
-        this.powerups.push(new PowerUp(x, y));
-    },
-    update() {
-        if(!this.running) return;
+    <canvas id="gameCanvas"></canvas>
+    
+    <script>
+        const ACHIEVEMENTS = [
+            { id: 'first-win', name: 'First Victory', icon: '🎉', desc: 'Win your first match', condition: (state) => state.totalGamesWon >= 1 },
+            { id: 'five-wins', name: 'Five Wins', icon: '🔥', desc: 'Win 5 matches', condition: (state) => state.totalGamesWon >= 5 },
+            { id: 'ten-wins', name: 'Ten Wins', icon: '⭐', desc: 'Win 10 matches', condition: (state) => state.totalGamesWon >= 10 },
+            { id: 'high-score', name: 'High Scorer', icon: '💯', desc: 'Score 8 points in one match', condition: (state) => state.bestScore >= 8 },
+            { id: 'all-characters', name: 'All Heroes', icon: '🤖', desc: 'Unlock all characters', condition: (state) => state.unlocked.length === 6 },
+            { id: 'rich', name: 'Rich Player', icon: '💰', desc: 'Own 1000 coins', condition: (state) => state.coins >= 1000 },
+            { id: 'challenge-master', name: 'Challenge Master', icon: '⚡', desc: 'Complete 5 time challenges', condition: (state) => state.challengesCompleted >= 5 },
+            { id: 'combo-master', name: 'Combo Master', icon: '🔥', desc: 'Achieve 20 hit combo', condition: (state) => state.maxCombo >= 20 },
+            { id: 'impossible-win', name: 'Hell Conqueror', icon: '🖤', desc: 'Win on Impossible difficulty', condition: (state) => state.impossibleWins >= 1 },
+            { id: 'perfect-game', name: 'Perfect Match', icon: '✨', desc: 'Win 10:0 perfectly', condition: (state) => state.perfectGames >= 1 },
+            { id: 'speedrun', name: 'Lightning Warrior', icon: '⚡', desc: 'Win match in under 3 min', condition: (state) => state.fastestWin <= 180 },
+            { id: 'seven-days', name: 'Persistent', icon: '📅', desc: 'Check in 7 days straight', condition: (state) => state.dailyStreak >= 7 }
+        ];
 
-        if (this.challenge.active) {
-            this.challenge.timer--;
-            const progress = (this.challenge.timer / this.challenge.maxTime) * 100;
-            document.getElementById('progress-fill').style.width = progress + "%";
-            if (this.challenge.timer <= 0) this.endChallenge(false);
-        } else if (Math.random() < 0.002) {
-            this.startChallenge();
-        }
+        const RANKS = [
+            { name: 'Beginner', icon: '🥚', minWins: 0, maxWins: 5 },
+            { name: 'Novice', icon: '🥉', minWins: 5, maxWins: 15 },
+            { name: 'Intermediate', icon: '🥈', minWins: 15, maxWins: 30 },
+            { name: 'Advanced', icon: '🥇', minWins: 30, maxWins: 50 },
+            { name: 'Master', icon: '👑', minWins: 50, maxWins: 100 },
+            { name: 'Legend', icon: '🔱', minWins: 100, maxWins: Infinity }
+        ];
 
-        if(this.shake > 0) this.shake *= 0.9;
-        const pHeight = this.player.height + this.player.heightMod;
-        this.player.y = clamp(this.mouseY - pHeight/2, 0, this.height - pHeight);
-        this.player.update();
-
-        // --- 逻辑优化的 AI 难度系统 ---
-        const diffSetting = DIFFICULTIES[this.currentDifficulty];
-        let threat = this.balls.filter(b => b.vx > 0).sort((a,b) => (this.ai.x - a.x) - (this.ai.x - b.x))[0];
-        let targetY = this.height / 2;
-
-        if (threat) {
-            if (diffSetting.predict) {
-                // 如果启用了预测逻辑（Medium以上）
-                let tempX = threat.x, tempY = threat.y, tempVX = threat.vx, tempVY = threat.vy;
-                let iterations = 0;
-                while (tempX < this.ai.x && iterations < 50) {
-                    tempX += tempVX; tempY += tempVY;
-                    if (tempY < 0 || tempY > this.height) tempVY *= -1;
-                    iterations++;
+        const AudioEngine = {
+            ctx: null,
+            gainNode: null,
+            compressor: null,
+            enabled: true,
+            
+            init() {
+                if (this.ctx) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                    this.gainNode = this.ctx.createGain();
+                    this.gainNode.gain.value = 0.15;
+                    this.compressor = this.ctx.createDynamicsCompressor();
+                    this.compressor.threshold.value = -30;
+                    this.gainNode.connect(this.compressor);
+                    this.compressor.connect(this.ctx.destination);
+                } catch(e) {
+                    this.enabled = false;
                 }
-                targetY = tempY;
-            } else {
-                // Easy 和 Very Easy 只是死死盯着球的当前位置
-                targetY = threat.y;
+            },
+            
+            playTone(freq, type = 'sine', duration = 0.1, volume = 0.1) {
+                if (!this.enabled || !this.ctx || this.ctx.state === 'suspended') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + duration);
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.gainNode);
+                    osc.start(this.ctx.currentTime);
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            
+            playHit() { this.playTone(450 + Math.random() * 150, 'square', 0.08, 0.1); },
+            playWall() { this.playTone(180, 'sine', 0.06, 0.08); },
+            playScore(isPlayer) {
+                if (isPlayer) {
+                    this.playTone(680, 'triangle', 0.15, 0.12);
+                    setTimeout(() => this.playTone(900, 'triangle', 0.15, 0.12), 80);
+                } else {
+                    this.playTone(140, 'sawtooth', 0.3, 0.1);
+                }
+            },
+            playPowerUp() { this.playTone(1300, 'sine', 0.2, 0.1); },
+            playChallenge() {
+                this.playTone(1200, 'square', 0.1, 0.12);
+                setTimeout(() => this.playTone(1500, 'square', 0.1, 0.12), 80);
             }
-
-            // 加入难度特有的随机误差（让 AI 看起来“看走眼”了）
-            const error = (Math.random() - 0.5) * diffSetting.error;
-            targetY = targetY + error - (this.ai.height + this.ai.heightMod) / 2;
+        };
+        
+        const CHARACTERS = [
+            { id: 'neon', name: 'Neon Hero', skill: 'Lightning Strike', price: 0, color: '#0ff', ability: 'speed', emoji: '⚡' },
+            { id: 'shadow', name: 'Shadow', skill: 'Shadow Clone', price: 50, color: '#a0f', ability: 'shadow', emoji: '🌑' },
+            { id: 'inferno', name: 'Inferno', skill: 'Burn Collision', price: 100, color: '#f60', ability: 'burn', emoji: '🔥' },
+            { id: 'phantom', name: 'Phantom', skill: 'Ghost Wave', price: 150, color: '#f0f', ability: 'stealth', emoji: '👻' },
+            { id: 'titan', name: 'Titan', skill: 'Heavy Impact', price: 200, color: '#0f0', ability: 'size', emoji: '💪' },
+            { id: 'cyber', name: 'Cyber Hero', skill: 'Data Storm', price: 300, color: '#0f8', ability: 'cyber', emoji: '🤖' }
+        ];
+        
+        let gameState = {
+            coins: parseInt(localStorage.getItem('pong_coins')) || 0,
+            unlocked: JSON.parse(localStorage.getItem('pong_unlocked')) || ['neon'],
+            selected: 'neon',
+            totalGamesWon: parseInt(localStorage.getItem('pong_wins')) || 0,
+            bestScore: parseInt(localStorage.getItem('pong_best')) || 0,
+            stats: (() => {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem('pong_stats'));
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch(e) {
+                    return [];
+                }
+            })(),
+            achievements: JSON.parse(localStorage.getItem('pong_achievements')) || [],
+            dailyStreak: parseInt(localStorage.getItem('pong_daily_streak')) || 0,
+            lastDailyCheck: localStorage.getItem('pong_last_daily') || '',
+            challengesCompleted: parseInt(localStorage.getItem('pong_challenges')) || 0,
+            maxCombo: parseInt(localStorage.getItem('pong_max_combo')) || 0,
+            impossibleWins: parseInt(localStorage.getItem('pong_impossible_wins')) || 0,
+            perfectGames: parseInt(localStorage.getItem('pong_perfect_games')) || 0,
+            fastestWin: parseInt(localStorage.getItem('pong_fastest_win')) || 9999,
+            totalGames: parseInt(localStorage.getItem('pong_total_games')) || 0,
+            totalLosses: parseInt(localStorage.getItem('pong_total_losses')) || 0,
+            totalScore: parseInt(localStorage.getItem('pong_total_score')) || 0,
+            theme: localStorage.getItem('pong_theme') || 'default',
+            particlesEnabled: localStorage.getItem('pong_particles') !== 'false',
+            soundEnabled: localStorage.getItem('pong_sound') !== 'false',
+            blurEnabled: localStorage.getItem('pong_blur') !== 'false',
+            shakeEnabled: localStorage.getItem('pong_shake') !== 'false',
+            brightness: parseInt(localStorage.getItem('pong_brightness')) || 100,
+            difficultyBoost: parseInt(localStorage.getItem('pong_boost')) || 0
+        };
+        
+        const CONFIG = {
+            paddleWidth: 18,
+            paddleHeight: 100,
+            ballSpeed: 10,
+            ballMaxSpeed: 35,
+            spinFactor: 0.2,
+            friction: 0.99,
+            colors: { player: '#0ff', ai: '#f0f', ball: '#fff', grid: '#1a1a1a' },
+            canvasAlpha: 0.2
+        };
+        
+        const DIFFICULTIES = {
+            'very-easy': { speed: 0.02, error: 250, predict: false, name: '超轻松', ballSpeedMult: 0.7 },
+            'easy': { speed: 0.06, error: 120, predict: false, name: '轻松', ballSpeedMult: 0.85 },
+            'medium': { speed: 0.16, error: 50, predict: true, name: '普通', ballSpeedMult: 1.0 },
+            'hard': { speed: 0.35, error: 15, predict: true, name: '困难', ballSpeedMult: 1.2 },
+            'impossible': { speed: 0.95, error: 2, predict: true, name: '地狱', ballSpeedMult: 1.4 }
+        };
+        
+        const lerp = (a, b, t) => a + (b - a) * Math.min(t, 1);
+        const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+        const hypot = (dx, dy) => Math.hypot(dx, dy) || Math.sqrt(dx * dx + dy * dy);
+        
+        // 性能优化：缓存对象
+        const performanceOptimizations = {
+            particlePool: [],
+            ballPool: [],
+            getParticle(x, y, color, speed) {
+                let p = this.particlePool.pop();
+                if (!p) p = new Particle(x, y, color, speed);
+                else {
+                    p.x = x; p.y = y; p.color = color;
+                    const angle = Math.random() * Math.PI * 2;
+                    const velocity = Math.random() * speed;
+                    p.vx = Math.cos(angle) * velocity;
+                    p.vy = Math.sin(angle) * velocity;
+                    p.life = 1.0;
+                    p.decay = 0.018 + Math.random() * 0.035;
+                }
+                return p;
+            },
+            releaseParticle(p) {
+                if (this.particlePool.length < 500) this.particlePool.push(p);
+            }
+        };
+        
+        class Particle {
+            constructor(x, y, color, speed) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * speed;
+                this.vx = Math.cos(angle) * velocity;
+                this.vy = Math.sin(angle) * velocity;
+                this.life = 1.0;
+                this.decay = 0.018 + Math.random() * 0.035;
+                this.radius = 1.5 + Math.random() * 2.5;
+            }
             
-            let reaction = diffSetting.speed;
-            // 只有高难度才有针对高速球的瞬间反应补偿
-            if (this.currentDifficulty === 'impossible' && Math.abs(threat.vx) > 20) reaction *= 1.2;
+            update() {
+                this.x += this.vx; this.y += this.vy; this.vy += 0.25; this.life -= this.decay;
+            }
             
-            this.ai.y = lerp(this.ai.y, targetY, reaction);
-        } else {
-            // 没有威胁时闲逛
-            this.ai.y = lerp(this.ai.y, this.height/2 - this.ai.height/2, 0.03);
+            draw(ctx) {
+                ctx.globalAlpha = this.life * 0.7;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
         
-        this.ai.y = clamp(this.ai.y, 0, this.height - (this.ai.height + this.ai.heightMod));
-        this.ai.update();
-
-        this.balls.forEach(ball => {
-            ball.update();
-            const p = this.player;
-            const ph = p.height + p.heightMod;
-            if (ball.x - ball.radius < p.x + p.width && ball.x + ball.radius > p.x && ball.y > p.y && ball.y < p.y + ph) {
-                ball.vx = Math.abs(ball.vx) * 1.15;
-                if(ball.vx > CONFIG.ballMaxSpeed) ball.vx = CONFIG.ballMaxSpeed;
-                ball.x = p.x + p.width + ball.radius;
-                ball.spin += p.vy * CONFIG.spinFactor; 
-                ball.vy += p.vy * 0.25;
-                ball.opacity = 1;
-                AudioEngine.playHit(); this.shakeScreen(10);
-                this.spawnParticles(ball.x, ball.y, p.color, 25);
-                if(Math.random() < 0.2) this.spawnPowerUp();
+        class PowerUp {
+            constructor(x, y) {
+                this.x = x; this.y = y; this.radius = 18; this.active = true;
+                this.type = Math.floor(Math.random() * 4);
+                this.pulse = 0; this.rotation = 0; this.spawnTime = Date.now(); this.lifespan = 12000;
             }
-            const ai = this.ai;
-            const aih = ai.height + ai.heightMod;
-            if (ball.x + ball.radius > ai.x && ball.x - ball.radius < ai.x + ai.width && ball.y > ai.y && ball.y < ai.y + aih) {
-                ball.vx = -Math.abs(ball.vx) * 1.12;
-                ball.x = ai.x - ball.radius;
-                ball.spin -= ai.vy * CONFIG.spinFactor;
-                AudioEngine.playHit(); this.shakeScreen(10);
-                this.spawnParticles(ball.x, ball.y, '#f0f', 25);
+            
+            update() {
+                this.pulse += 0.1; this.rotation += 0.07;
+                if (Date.now() - this.spawnTime > this.lifespan) { this.active = false; }
             }
-            if (ball.x < 0) { this.ai.score++; this.scoreEvent(ball, false); }
-            else if (ball.x > this.width) { this.player.score++; this.scoreEvent(ball, true); }
-            this.powerups.forEach((pu, idx) => {
-                if (Math.hypot(ball.x - pu.x, ball.y - pu.y) < ball.radius + pu.radius) {
-                    this.activatePowerUp(pu.type, ball.vx > 0);
-                    this.powerups.splice(idx, 1);
-                    AudioEngine.playPowerUp(); this.spawnParticles(pu.x, pu.y, '#fff', 40);
+            
+            draw(ctx) {
+                if (!this.active) return;
+                const glow = 15 + Math.sin(this.pulse) * 6;
+                ctx.shadowBlur = glow;
+                const colors = ['#ffaa00', '#00ff88', '#00aaff', '#ff00ff'];
+                ctx.fillStyle = colors[this.type];
+                ctx.shadowColor = colors[this.type];
+                
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.globalAlpha = 0.85;
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const labels = ['x3', 'BIG', 'SLOW', 'BOOST'];
+                ctx.fillText(labels[this.type], 0, 0);
+                ctx.restore();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        class Ball {
+            constructor(x, y, speedMult = 1.0) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() > 0.5 ? 1 : -1) * CONFIG.ballSpeed * speedMult;
+                this.vy = (Math.random() * 2 - 1) * CONFIG.ballSpeed * speedMult * 0.7;
+                this.radius = 8; this.spin = 0; this.active = true;
+                this.trail = []; this.opacity = 1; this.ghostMode = false; this.trailMax = 10;
+            }
+            
+            update(gameHeight) {
+                this.vy += this.spin * 0.06;
+                if (this.ghostMode) { this.vy += Math.sin(Date.now() * 0.01) * 0.4; }
+                this.spin *= 0.98;
+                
+                this.x += this.vx; this.y += this.vy;
+                
+                if (this.trail.length < this.trailMax) {
+                    this.trail.push({ x: this.x, y: this.y, alpha: 1.0 });
+                } else {
+                    this.trail.shift();
+                    this.trail.push({ x: this.x, y: this.y, alpha: 1.0 });
                 }
-            });
-        });
-
-        this.balls = this.balls.filter(b => b.active);
-        if(this.balls.length === 0 && this.running) this.balls.push(new Ball(this.width/2, this.height/2));
-        if (this.player.score >= 10 || this.ai.score >= 10) this.gameOver(this.player.score >= 10 ? "YOU WIN" : "GAME OVER");
-        this.particles.forEach(p => p.update());
-        this.particles = this.particles.filter(p => p.life > 0);
-    },
-    activatePowerUp(type, forPlayer) {
-        if (type === 0) {
-            const b = this.balls[0];
-            if(b) { const nb = new Ball(b.x, b.y); nb.vx = -b.vx; this.balls.push(nb); }
-            this.showCoolText("MULTI BALL!");
-        } else if (type === 1) {
-            if (forPlayer) this.player.heightMod = 150; else this.ai.heightMod = 150;
-            this.showCoolText("GIGA PADDLE!");
-        } else if (type === 2) {
-            this.balls.forEach(b => { b.vx *= 0.5; b.vy *= 0.5; });
-            this.showCoolText("SLOW MO!");
+                this.trail.forEach(t => t.alpha -= 0.15);
+                
+                if (this.y - this.radius < 0 || this.y + this.radius > gameHeight) {
+                    this.vy *= -1.005;
+                    this.y = clamp(this.y, this.radius, gameHeight - this.radius);
+                    return { type: 'wall', x: this.x, y: this.y };
+                }
+                return null;
+            }
+            
+            draw(ctx) {
+                if (!this.active) return;
+                
+                this.trail.forEach((t, i) => {
+                    const ratio = i / this.trail.length;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha * 0.15 * this.opacity * ratio})`;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, this.radius * ratio * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = CONFIG.colors.ball;
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = CONFIG.colors.ball;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
         }
-        this.shakeScreen(12);
-    },
-    scoreEvent(ball, playerScored) {
-        ball.active = false; AudioEngine.playScore(playerScored);
-        this.shakeScreen(25); this.updateScoreUI();
-        if (this.challenge.active && playerScored) {
-            this.challenge.current++;
-            document.getElementById('challenge-label').innerText = `TIME CHALLENGE: ${this.challenge.current}/${this.challenge.target}`;
-            if (this.challenge.current >= this.challenge.target) this.endChallenge(true);
+        
+        class Paddle {
+            constructor(isPlayer) {
+                this.isPlayer = isPlayer;
+                this.width = CONFIG.paddleWidth;
+                this.height = CONFIG.paddleHeight;
+                this.x = isPlayer ? 25 : 0;
+                this.y = 0; this.vy = 0; this.lastY = 0;
+                this.color = isPlayer ? CONFIG.colors.player : CONFIG.colors.ai;
+                this.score = 0; this.heightMod = 0; this.skillCooldown = 0; this.hits = 0;
+            }
+            
+            update() {
+                this.vy = this.y - this.lastY;
+                this.lastY = this.y;
+                if (this.heightMod > 0) this.heightMod -= 0.35;
+                if (this.skillCooldown > 0) this.skillCooldown--;
+            }
+            
+            draw(ctx) {
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                const h = this.height + this.heightMod;
+                
+                ctx.beginPath();
+                if (this.isPlayer) {
+                    ctx.moveTo(this.x, this.y + 4);
+                    ctx.lineTo(this.x + this.width, this.y);
+                    ctx.lineTo(this.x + this.width, this.y + h);
+                    ctx.lineTo(this.x, this.y + h - 4);
+                } else {
+                    ctx.moveTo(this.x + this.width, this.y + 4);
+                    ctx.lineTo(this.x, this.y);
+                    ctx.lineTo(this.x, this.y + h);
+                    ctx.lineTo(this.x + this.width, this.y + h - 4);
+                }
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#fff';
+                const barX = this.isPlayer ? this.x + this.width - 4 : this.x;
+                ctx.fillRect(barX, this.y + 10, 3, h - 20);
+            }
         }
-    },
-    updateScoreUI() {
-        document.getElementById('player-score').innerText = this.player.score;
-        document.getElementById('ai-score').innerText = this.ai.score;
-    },
-    updateCoinUI() {
-        document.getElementById('coin-display').innerText = `COINS: ${gameState.coins}`;
-    },
-    draw() {
-        this.ctx.fillStyle = 'rgba(5, 5, 5, 0.4)';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        this.ctx.save();
-        if(this.shake > 0) this.ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
-        this.ctx.strokeStyle = CONFIG.colors.grid; this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        for(let i=0; i<this.width; i+=50) { this.ctx.moveTo(i, 0); this.ctx.lineTo(i, this.height); }
-        for(let i=0; i<this.height; i+=50) { this.ctx.moveTo(0, i); this.ctx.lineTo(this.width, i); }
-        this.ctx.stroke();
-        this.player.draw(this.ctx); this.ai.draw(this.ctx);
-        this.balls.forEach(b => b.draw(this.ctx));
-        this.particles.forEach(p => p.draw(this.ctx));
-        this.powerups.forEach(p => p.draw(this.ctx));
-        this.ctx.restore();
-    },
-    loop() { this.update(); this.draw(); requestAnimationFrame(this.loop); }
-};
+        
+        const game = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: null,
+            width: 0,
+            height: 0,
+            running: false,
+            player: null,
+            ai: null,
+            balls: [],
+            particles: [],
+            powerups: [],
+            shake: 0,
+            mouseY: 0,
+            lastTapTime: 0,
+            currentDifficulty: 'medium',
+            gameStartTime: 0,
+            challenge: {
+                active: false,
+                timer: 0,
+                maxTime: 700,
+                target: 3,
+                current: 0
+            },
+            comboCounter: 0,
+            comboTimer: 0,
+            frameCount: 0,
+            fps: 60,
+            
+            init() {
+                this.ctx = this.canvas.getContext('2d');
+                this.player = new Paddle(true);
+                this.ai = new Paddle(false);
+                
+                document.body.setAttribute('data-theme', gameState.theme);
+                
+                window.addEventListener('resize', () => this.resize(), false);
+                window.addEventListener('mousemove', e => { this.mouseY = e.clientY; }, false);
+                window.addEventListener('touchstart', e => {
+                    if (e.touches.length > 0) {
+                        this.mouseY = e.touches[0].clientY;
+                        const now = Date.now();
+                        if (now - this.lastTapTime < 300) this.useSkill();
+                        this.lastTapTime = now;
+                    }
+                }, { passive: true });
+                
+                window.addEventListener('touchmove', e => {
+                    if (e.touches.length > 0) { this.mouseY = e.touches[0].clientY; }
+                }, { passive: true });
+                
+                window.addEventListener('keydown', e => {
+                    if (e.code === 'Space') { this.useSkill(); e.preventDefault(); }
+                }, false);
+                
+                this.resize();
+                this.renderChars();
+                this.updateCoinUI();
+                this.checkDailySign();
+                this.loop = this.loop.bind(this);
+                requestAnimationFrame(this.loop);
+            },
+            
+            setTheme(theme) {
+                gameState.theme = theme;
+                document.body.setAttribute('data-theme', theme);
+                localStorage.setItem('pong_theme', theme);
+            },
+            
+            checkDailySign() {
+                const today = new Date().toDateString();
+                const lastDay = gameState.lastDailyCheck;
+                const yesterday = new Date(Date.now() - 86400000).toDateString();
+                
+                if (lastDay !== today) {
+                    if (lastDay === yesterday) {
+                        gameState.dailyStreak++;
+                    } else {
+                        gameState.dailyStreak = 1;
+                    }
+                    gameState.lastDailyCheck = today;
+                    gameState.coins += 50 + gameState.dailyStreak * 10;
+                    this.saveProgress();
+                    this.updateCoinUI();
+                }
+            },
+            
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                this.ai.x = this.width - 40;
+            },
+            
+            renderChars() {
+                const container = document.getElementById('char-list');
+                container.innerHTML = '';
+                CHARACTERS.forEach(char => {
+                    const isUnlocked = gameState.unlocked.includes(char.id);
+                    const card = document.createElement('div');
+                    card.className = `char-card ${gameState.selected === char.id ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`;
+                    card.innerHTML = `<div style="font-size: 24px; margin-bottom: 6px;">${char.emoji}</div><div class="char-name">${char.name}</div><div class="char-skill">${char.skill}</div>${!isUnlocked ? `<div class="char-price">🔑 ${char.price}</div>` : '<div class="char-skill" style="color: #0f0;">Unlocked</div>'}`;
+                    card.onclick = () => this.selectChar(char);
+                    container.appendChild(card);
+                });
+            },
+            
+            selectChar(char) {
+                if (gameState.unlocked.includes(char.id)) {
+                    gameState.selected = char.id;
+                    const selectedChar = CHARACTERS.find(c => c.id === char.id);
+                    this.player.color = selectedChar.color;
+                    this.renderChars();
+                } else if (gameState.coins >= char.price) {
+                    gameState.coins -= char.price;
+                    gameState.unlocked.push(char.id);
+                    gameState.selected = char.id;
+                    this.player.color = char.color;
+                    this.saveProgress();
+                    this.updateCoinUI();
+                    this.renderChars();
+                    this.showCoolText('Unlocked!');
+                    AudioEngine.init();
+                    AudioEngine.playPowerUp();
+                }
+            },
+            
+            saveProgress() {
+                localStorage.setItem('pong_coins', gameState.coins);
+                localStorage.setItem('pong_unlocked', JSON.stringify(gameState.unlocked));
+                localStorage.setItem('pong_wins', gameState.totalGamesWon);
+                localStorage.setItem('pong_best', gameState.bestScore);
+                localStorage.setItem('pong_stats', JSON.stringify(gameState.stats));
+                localStorage.setItem('pong_achievements', JSON.stringify(gameState.achievements));
+                localStorage.setItem('pong_daily_streak', gameState.dailyStreak);
+                localStorage.setItem('pong_last_daily', gameState.lastDailyCheck);
+                localStorage.setItem('pong_challenges', gameState.challengesCompleted);
+                localStorage.setItem('pong_max_combo', gameState.maxCombo);
+                localStorage.setItem('pong_impossible_wins', gameState.impossibleWins);
+                localStorage.setItem('pong_perfect_games', gameState.perfectGames);
+                localStorage.setItem('pong_fastest_win', gameState.fastestWin);
+                localStorage.setItem('pong_total_games', gameState.totalGames);
+                localStorage.setItem('pong_total_losses', gameState.totalLosses);
+                localStorage.setItem('pong_total_score', gameState.totalScore);
+                localStorage.setItem('pong_particles', gameState.particlesEnabled);
+                localStorage.setItem('pong_sound', gameState.soundEnabled);
+                localStorage.setItem('pong_blur', gameState.blurEnabled);
+                localStorage.setItem('pong_shake', gameState.shakeEnabled);
+                localStorage.setItem('pong_brightness', gameState.brightness);
+                localStorage.setItem('pong_boost', gameState.difficultyBoost);
+            },
+            
+            showCoolText(text) {
+                const el = document.getElementById('combo-display');
+                el.innerText = text;
+                el.classList.remove('cool-pop');
+                void el.offsetWidth;
+                el.classList.add('cool-pop');
+            },
+            
+            showDifficulty() {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.remove('hidden');
+            },
+            
+            backToStart() {
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
 
-game.init();
-</script>
+            showGuide() {
+                if (this.running) return;
+                this.hideAllScreens();
+                document.getElementById('guide-screen').classList.remove('hidden');
+            },
+            
+            showSettings() {
+                if (this.running) return;
+                this.hideAllScreens();
+                document.getElementById('settings-screen').classList.remove('hidden');
+            },
+            
+            hideSettings() {
+                document.getElementById('settings-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+            
+            toggleSetting(key) {
+                gameState[key + 'Enabled'] = !gameState[key + 'Enabled'];
+                this.saveProgress();
+                this.updateSettingsUI();
+            },
+            
+            setBrightness(value) {
+                gameState.brightness = parseInt(value);
+                document.getElementById('brightness-value').innerText = value + '%';
+                document.documentElement.style.opacity = value / 100;
+                this.saveProgress();
+            },
+            
+            setDifficultyBoost(value) {
+                gameState.difficultyBoost = parseInt(value);
+                document.getElementById('boost-value').innerText = value + '%';
+                this.saveProgress();
+            },
+            
+            setThemeSelect(theme) {
+                this.setTheme(theme);
+            },
+            
+            updateSettingsUI() {
+                document.getElementById('particle-toggle').classList.toggle('on', gameState.particlesEnabled);
+                document.getElementById('sound-toggle').classList.toggle('on', gameState.soundEnabled);
+                document.getElementById('shake-toggle').classList.toggle('on', gameState.shakeEnabled);
+                document.getElementById('brightness-value').innerText = gameState.brightness + '%';
+                document.getElementById('boost-value').innerText = gameState.difficultyBoost + '%';
+            },
+            
+            exportData() {
+                const data = {
+                    coins: gameState.coins,
+                    unlocked: gameState.unlocked,
+                    totalGamesWon: gameState.totalGamesWon,
+                    bestScore: gameState.bestScore,
+                    stats: gameState.stats,
+                    achievements: gameState.achievements,
+                    dailyStreak: gameState.dailyStreak,
+                    challengesCompleted: gameState.challengesCompleted,
+                    maxCombo: gameState.maxCombo,
+                    impossibleWins: gameState.impossibleWins,
+                    perfectGames: gameState.perfectGames,
+                    fastestWin: gameState.fastestWin
+                };
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'neon-pong-data.json';
+                link.click();
+                URL.revokeObjectURL(url);
+            },
+            
+            resetData() {
+                if (confirm('Are you sure? This cannot be undone!')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            },
+
+            hideGuide() {
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+
+            showAchievements() {
+                if (this.running) return;
+                this.renderAchievements();
+                this.hideAllScreens();
+                document.getElementById('achievements-screen').classList.remove('hidden');
+            },
+
+            hideAchievements() {
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+            
+            hideAllScreens() {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('settings-screen').classList.add('hidden');
+            },
+
+            renderAchievements() {
+                const container = document.getElementById('achievement-list');
+                container.innerHTML = '';
+                let unlocked = 0;
+                ACHIEVEMENTS.forEach(ach => {
+                    const isUnlocked = ach.condition(gameState);
+                    if (isUnlocked) unlocked++;
+                    const div = document.createElement('div');
+                    div.className = `achievement-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+                    div.innerHTML = `<div class="achievement-icon">${ach.icon}</div><div class="achievement-name">${ach.name}</div><div style="font-size: 10px; color: #666;">${ach.desc}</div>`;
+                    container.appendChild(div);
+                });
+                document.getElementById('achievement-progress').innerText = `已解锁 ${unlocked}/${ACHIEVEMENTS.length} 个成就`;
+            },
+
+            showDaily() {
+                if (this.running) return;
+                this.renderDaily();
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.remove('hidden');
+            },
+
+            hideDaily() {
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+
+            renderDaily() {
+                const container = document.getElementById('daily-list');
+                container.innerHTML = '';
+                for (let i = 1; i <= 7; i++) {
+                    const div = document.createElement('div');
+                    const isChecked = gameState.dailyStreak >= i;
+                    div.className = `daily-item ${isChecked ? 'checked' : ''}`;
+                    div.innerHTML = `<div class="daily-day">Day ${i}</div><div class="daily-reward">+${50 + i * 10}💰</div>`;
+                    container.appendChild(div);
+                }
+                document.getElementById('daily-info').innerHTML = `Streak: <span id="daily-streak">${gameState.dailyStreak}</span> Days`;
+            },
+
+            showRank() {
+                if (this.running) return;
+                this.renderRank();
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.remove('hidden');
+            },
+
+            hideRank() {
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+
+            renderRank() {
+                const currentRank = RANKS.find(r => gameState.totalGamesWon >= r.minWins && gameState.totalGamesWon < r.maxWins);
+                const rankName = document.getElementById('rank-name');
+                rankName.innerHTML = `${currentRank.icon} ${currentRank.name}`;
+                
+                const progress = gameState.totalGamesWon - currentRank.minWins;
+                const total = currentRank.maxWins - currentRank.minWins;
+                const percent = Math.min(100, (progress / total) * 100);
+                document.getElementById('rank-fill').style.width = percent + '%';
+                document.getElementById('rank-info').innerHTML = `Wins: ${gameState.totalGamesWon} / Next Tier: ${currentRank.maxWins}`;
+                
+                const container = document.getElementById('rank-list');
+                container.innerHTML = '';
+                RANKS.forEach(rank => {
+                    const div = document.createElement('div');
+                    div.className = 'rank-item';
+                    div.innerHTML = `<span class="rank-item-name">${rank.icon} ${rank.name}</span><span class="rank-item-req">${rank.minWins}+ 胜利</span>`;
+                    container.appendChild(div);
+                });
+            },
+            
+            showStats() {
+                if (this.running) return;
+                this.renderStats();
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.remove('hidden');
+            },
+            
+            hideStats() {
+                document.getElementById('stats-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            },
+            
+            renderStats() {
+                const container = document.getElementById('stats-grid');
+                const totalGames = Math.max(gameState.totalGames || 0, gameState.totalGamesWon + gameState.totalLosses);
+                const winRate = totalGames > 0 ? ((gameState.totalGamesWon / totalGames) * 100).toFixed(1) : 0;
+                const avgScore = totalGames > 0 ? (gameState.totalScore / totalGames).toFixed(1) : 0;
+                
+                const stats = [
+                    { title: 'Total Games', value: totalGames },
+                    { title: 'Total Wins', value: gameState.totalGamesWon, highlight: true },
+                    { title: 'Total Losses', value: gameState.totalLosses },
+                    { title: 'Win Rate', value: winRate + '%', highlight: true },
+                    { title: 'Best Score', value: gameState.bestScore },
+                    { title: 'Avg Score', value: avgScore },
+                    { title: 'Max Combo', value: gameState.maxCombo, highlight: true },
+                    { title: 'Total Coins', value: gameState.coins },
+                    { title: 'Fastest Win', value: gameState.fastestWin <= 9999 ? gameState.fastestWin + 's' : '-' },
+                    { title: 'Perfect Games', value: gameState.perfectGames, highlight: true },
+                    { title: 'Impossible Wins', value: gameState.impossibleWins },
+                    { title: 'Challenges Done', value: gameState.challengesCompleted }
+                ];
+                
+                container.innerHTML = '';
+                stats.forEach(stat => {
+                    const div = document.createElement('div');
+                    div.className = `stat-card ${stat.highlight ? 'highlight' : ''}`;
+                    div.innerHTML = `<div class="stat-card-title">${stat.title}</div><div class="stat-card-value">${stat.value}</div>`;
+                    container.appendChild(div);
+                });
+            },
+            
+            useSkill() {
+                if (!this.running || this.player.skillCooldown > 0) return;
+                const char = CHARACTERS.find(c => c.id === gameState.selected);
+                if (!char) return;
+                
+                if (gameState.soundEnabled) AudioEngine.init();
+                
+                if (char.ability === 'stealth') {
+                    this.balls.forEach(b => {
+                        if (b.vx < 0) {
+                            b.opacity = 0.05;
+                            b.ghostMode = true;
+                        }
+                    });
+                    this.showCoolText("👻 幽灵 👻");
+                    setTimeout(() => {
+                        this.balls.forEach(b => {
+                            b.opacity = 1;
+                            b.ghostMode = false;
+                        });
+                    }, 2500);
+                } else if (char.ability === 'size') {
+                    this.player.heightMod = 200;
+                    this.showCoolText("💪 巨人 💪");
+                } else if (char.ability === 'speed') {
+                    this.balls.forEach(b => {
+                        if (b.vx > 0) b.vx *= 1.8;
+                    });
+                    this.showCoolText("⚡ 闪电 ⚡");
+                } else if (char.ability === 'shadow') {
+                    this.balls.forEach(b => {
+                        if (b.vx < 0) b.vy += (Math.random() - 0.5) * 15;
+                    });
+                    this.showCoolText("🌑 影分身 🌑");
+                } else if (char.ability === 'burn') {
+                    this.balls.forEach(b => {
+                        if (b.vx > 0) {
+                            b.vx *= 2.2;
+                            b.radius = 12;
+                        }
+                    });
+                    this.showCoolText("🔥 烈火 🔥");
+                } else if (char.ability === 'cyber') {
+                    this.balls.forEach(b => {
+                        if (b.vx > 0) {
+                            b.vx += 8;
+                            const nb = new Ball(b.x, b.y - 30, 1.0);
+                            nb.vx = b.vx;
+                            this.balls.push(nb);
+                        }
+                    });
+                    this.showCoolText("🤖 数据风暴 🤖");
+                }
+                
+                this.player.skillCooldown = 480;
+                AudioEngine.playPowerUp();
+                this.shakeScreen(15);
+            },
+            
+            startChallenge() {
+                if (this.challenge.active || !this.running) return;
+                this.challenge.active = true;
+                this.challenge.current = 0;
+                this.challenge.timer = this.challenge.maxTime;
+                document.getElementById('challenge-box').classList.remove('hidden');
+                this.showCoolText("🎮 时间挑战 🎮");
+                this.shakeScreen(20);
+                AudioEngine.init();
+                AudioEngine.playChallenge();
+                
+                const b2 = new Ball(this.width / 2, this.height / 2 + 50, 0.9);
+                b2.vx *= -1;
+                this.balls.push(b2);
+            },
+            
+            endChallenge(success) {
+                this.challenge.active = false;
+                document.getElementById('challenge-box').classList.add('hidden');
+                if (success) {
+                    gameState.coins += 80;
+                    gameState.challengesCompleted++;
+                    this.updateCoinUI();
+                    this.showCoolText("✨ 完成！✨");
+                    AudioEngine.init();
+                    AudioEngine.playPowerUp();
+                }
+            },
+            
+            start(diff = 'medium') {
+                this.currentDifficulty = diff;
+                this.gameStartTime = Date.now();
+                AudioEngine.init();
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('difficulty-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('guide-screen').classList.add('hidden');
+                document.getElementById('achievements-screen').classList.add('hidden');
+                document.getElementById('daily-screen').classList.add('hidden');
+                document.getElementById('rank-screen').classList.add('hidden');
+                document.getElementById('stats-screen').classList.add('hidden');
+                this.player.score = 0;
+                this.ai.score = 0;
+                this.updateScoreUI();
+                const speedMult = DIFFICULTIES[diff].ballSpeedMult;
+                this.balls = [new Ball(this.width / 2, this.height / 2, speedMult)];
+                this.particles = [];
+                this.powerups = [];
+                this.challenge.active = false;
+                this.comboCounter = 0;
+                this.running = true;
+                this.frameCount = 0;
+            },
+            
+            gameOver(isPlayerWin) {
+                this.running = false;
+                const gameTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+                const reward = this.player.score * 25 + (isPlayerWin ? 250 : 40);
+                gameState.coins += reward;
+                gameState.totalGames++;
+                gameState.totalScore += this.player.score;
+                
+                if (isPlayerWin) {
+                    gameState.totalGamesWon++;
+                    gameState.bestScore = Math.max(gameState.bestScore, this.player.score);
+                    if (gameState.maxCombo < this.comboCounter) {
+                        gameState.maxCombo = this.comboCounter;
+                    }
+                    if (this.currentDifficulty === 'impossible') {
+                        gameState.impossibleWins++;
+                    }
+                    if (this.player.score === 10 && this.ai.score === 0) {
+                        gameState.perfectGames++;
+                    }
+                    if (gameTime < 180) {
+                        gameState.fastestWin = Math.min(gameState.fastestWin, gameTime);
+                    }
+                } else {
+                    gameState.totalLosses++;
+                }
+                
+                if (!Array.isArray(gameState.stats)) {
+                    gameState.stats = [];
+                }
+                
+                gameState.stats.push({
+                    win: isPlayerWin,
+                    score: this.player.score,
+                    opponent: this.ai.score,
+                    difficulty: this.currentDifficulty,
+                    character: gameState.selected,
+                    timestamp: Date.now()
+                });
+                
+                if (gameState.stats.length > 20) gameState.stats.shift();
+                
+                this.saveProgress();
+                this.updateCoinUI();
+                
+                const winnerText = isPlayerWin ? "🎉 胜利！🎉" : "😢 失败 😢";
+                const winnerColor = isPlayerWin ? "#0ff" : "#f0f";
+                
+                document.getElementById('winner-text').innerText = winnerText;
+                document.getElementById('winner-text').style.color = winnerColor;
+                document.getElementById('final-score').innerText = `比分：${this.player.score} - ${this.ai.score}`;
+                document.getElementById('coin-earned').innerText = `+ ${reward}`;
+                document.getElementById('total-coins').innerText = gameState.coins;
+                document.getElementById('total-wins').innerText = gameState.totalGamesWon;
+                
+                this.renderLeaderboard();
+                document.getElementById('game-over-screen').classList.remove('hidden');
+                document.getElementById('skill-ready').innerText = "";
+                document.getElementById('challenge-box').classList.add('hidden');
+                this.renderChars();
+            },
+            
+            renderLeaderboard() {
+                const lb = document.getElementById('leaderboard');
+                if (!Array.isArray(gameState.stats) || gameState.stats.length === 0) {
+                    lb.innerHTML = '<div class="lb-item">暂无战绩</div>';
+                    return;
+                }
+                const wins = gameState.stats.filter(s => s && s.win).slice(-5).reverse();
+                if (wins.length === 0) {
+                    lb.innerHTML = '<div class="lb-item">暂无战绩</div>';
+                    return;
+                }
+                lb.innerHTML = wins.map((s, i) => `
+                    <div class="lb-item">
+                        <span class="lb-rank">#${i + 1}</span>
+                        <span>${s.score}-${s.opponent} [${s.difficulty}]</span>
+                        <span class="lb-score">+${s.score * 25 + 250}</span>
+                    </div>
+                `).join('');
+            },
+            
+            shakeScreen(amount) {
+                if (!gameState.shakeEnabled) return;
+                this.shake = Math.max(this.shake, amount);
+            },
+            
+            spawnParticles(x, y, color, count = 12) {
+                if (!gameState.particlesEnabled || this.particles.length > 800) return;
+                for (let i = 0; i < count; i++) {
+                    this.particles.push(new Particle(x, y, color, 6.5));
+                }
+            },
+            
+            spawnPowerUp() {
+                if (this.powerups.length < 2) {
+                    const x = 100 + Math.random() * (this.width - 200);
+                    const y = 60 + Math.random() * (this.height - 120);
+                    this.powerups.push(new PowerUp(x, y));
+                }
+            },
+            
+            update() {
+                if (!this.running) return;
+                
+                this.frameCount++;
+                
+                if (this.balls.length > 0) {
+                    const speedIndicator = document.querySelector('.speed-indicator');
+                    const ballSpeed = Math.min(100, (Math.abs(this.balls[0].vx) / CONFIG.ballMaxSpeed) * 100);
+                    speedIndicator.classList.remove('hidden');
+                    speedIndicator.querySelector('.speed-fill').style.width = ballSpeed + '%';
+                }
+                
+                if (this.challenge.active) {
+                    this.challenge.timer--;
+                    const progress = Math.max(0, this.challenge.timer / this.challenge.maxTime) * 100;
+                    document.getElementById('progress-fill').style.width = progress + "%";
+                    document.getElementById('challenge-current').innerText = this.challenge.current;
+                    if (this.challenge.timer <= 0) this.endChallenge(false);
+                } else if (Math.random() < 0.001 && this.balls.length === 1 && this.frameCount > 300) {
+                    this.startChallenge();
+                }
+                
+                if (this.shake > 0) this.shake *= 0.87;
+                
+                const pHeight = this.player.height + this.player.heightMod;
+                this.player.y = clamp(this.mouseY - pHeight / 2, 0, this.height - pHeight);
+                this.player.update();
+                
+                const diffSetting = DIFFICULTIES[this.currentDifficulty];
+                const threat = this.balls.filter(b => b.vx > 0).sort((a, b) => (this.ai.x - a.x) - (this.ai.x - b.x))[0];
+                let targetY = this.height / 2;
+                
+                if (threat) {
+                    if (diffSetting.predict && threat.x > this.width * 0.25) {
+                        let tempX = threat.x, tempY = threat.y, tempVX = threat.vx, tempVY = threat.vy;
+                        let iterations = 0;
+                        while (tempX < this.ai.x && iterations < 50) {
+                            tempX += tempVX;
+                            tempY += tempVY;
+                            if (tempY < 0 || tempY > this.height) tempVY *= -1;
+                            iterations++;
+                        }
+                        targetY = tempY;
+                    } else {
+                        targetY = threat.y;
+                    }
+                    
+                    const error = (Math.random() - 0.5) * diffSetting.error;
+                    targetY = targetY + error - (this.ai.height + this.ai.heightMod) / 2;
+                    
+                    let reaction = diffSetting.speed;
+                    if (this.currentDifficulty === 'impossible' && Math.abs(threat.vx) > 25) {
+                        reaction *= 1.4;
+                    }
+                    
+                    this.ai.y = lerp(this.ai.y, targetY, reaction);
+                } else {
+                    this.ai.y = lerp(this.ai.y, this.height / 2 - this.ai.height / 2, 0.02);
+                }
+                
+                this.ai.y = clamp(this.ai.y, 0, this.height - (this.ai.height + this.ai.heightMod));
+                this.ai.update();
+                
+                // 优化：使用for循环替代forEach
+                for (let bi = 0; bi < this.balls.length; bi++) {
+                    const ball = this.balls[bi];
+                    const collision = ball.update(this.height);
+                    if (collision) {
+                        this.spawnParticles(collision.x, collision.y, '#fff', 6);
+                        this.shakeScreen(6);
+                        AudioEngine.playWall();
+                    }
+                    
+                    const p = this.player;
+                    const ph = p.height + p.heightMod;
+                    if (ball.x - ball.radius < p.x + p.width && ball.x + ball.radius > p.x &&
+                        ball.y > p.y && ball.y < p.y + ph) {
+                        ball.vx = Math.abs(ball.vx) * 1.15;
+                        if (ball.vx > CONFIG.ballMaxSpeed) ball.vx = CONFIG.ballMaxSpeed;
+                        ball.x = p.x + p.width + ball.radius;
+                        ball.spin += p.vy * CONFIG.spinFactor;
+                        ball.vy += p.vy * 0.25;
+                        ball.opacity = 1;
+                        ball.ghostMode = false;
+                        p.hits++;
+                        this.comboCounter++;
+                        this.comboTimer = 160;
+                        AudioEngine.playHit();
+                        this.shakeScreen(10);
+                        this.spawnParticles(ball.x, ball.y, p.color, 20);
+                        if (Math.random() < 0.25) this.spawnPowerUp();
+                        
+                        if (this.comboCounter >= 3 && this.comboCounter % 3 === 0) {
+                            this.showCoolText(`🔥 ${this.comboCounter}HIT 🔥`);
+                        }
+                    }
+                    
+                    const ai = this.ai;
+                    const aih = ai.height + ai.heightMod;
+                    if (ball.x + ball.radius > ai.x && ball.x - ball.radius < ai.x + ai.width &&
+                        ball.y > ai.y && ball.y < ai.y + aih) {
+                        ball.vx = -Math.abs(ball.vx) * 1.12;
+                        ball.x = ai.x - ball.radius;
+                        ball.spin -= ai.vy * CONFIG.spinFactor;
+                        AudioEngine.playHit();
+                        this.shakeScreen(10);
+                        this.spawnParticles(ball.x, ball.y, '#f0f', 20);
+                    }
+                    
+                    if (ball.x < 0) {
+                        this.ai.score++;
+                        this.scoreEvent(ball, false);
+                    } else if (ball.x > this.width) {
+                        this.player.score++;
+                        this.scoreEvent(ball, true);
+                    }
+                    
+                    // 优化：使用for循环替代forEach
+                    for (let pi = this.powerups.length - 1; pi >= 0; pi--) {
+                        const pu = this.powerups[pi];
+                        if (hypot(ball.x - pu.x, ball.y - pu.y) < ball.radius + pu.radius) {
+                            this.activatePowerUp(pu.type, ball.vx > 0);
+                            this.powerups.splice(pi, 1);
+                            AudioEngine.playPowerUp();
+                            this.spawnParticles(pu.x, pu.y, '#fff', 30);
+                            break;
+                        }
+                    }
+                }
+                
+                this.balls = this.balls.filter(b => b.active);
+                if (this.balls.length === 0 && this.running) {
+                    const speedMult = DIFFICULTIES[this.currentDifficulty].ballSpeedMult;
+                    this.balls.push(new Ball(this.width / 2, this.height / 2, speedMult));
+                    this.comboCounter = 0;
+                }
+                
+                if (this.comboTimer > 0) {
+                    this.comboTimer--;
+                } else {
+                    this.comboCounter = 0;
+                }
+                
+                if (this.player.score >= 10 || this.ai.score >= 10) {
+                    this.gameOver(this.player.score >= 10);
+                }
+                
+                // 优化：批量更新粒子
+                let activeParticles = 0;
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.update();
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                    } else {
+                        activeParticles++;
+                    }
+                }
+                
+                // 优化：批量更新道具
+                for (let i = this.powerups.length - 1; i >= 0; i--) {
+                    const p = this.powerups[i];
+                    p.update();
+                    if (!p.active) this.powerups.splice(i, 1);
+                }
+                
+                if (this.running) {
+                    if (this.player.skillCooldown > 0) {
+                        document.getElementById('skill-ready').innerText = `⏳ ${Math.ceil(this.player.skillCooldown / 60)}S`;
+                    } else {
+                        document.getElementById('skill-ready').innerText = "⚡ 即就绪";
+                    }
+                }
+            },
+            
+            activatePowerUp(type, forPlayer) {
+                if (type === 0) {
+                    const b = this.balls[0];
+                    if (b && this.balls.length < 4) {
+                        const nb = new Ball(b.x, b.y);
+                        nb.vx = -b.vx;
+                        nb.vy = b.vy + (Math.random() - 0.5) * 3;
+                        this.balls.push(nb);
+                    }
+                    this.showCoolText("🎯 多球 🎯");
+                } else if (type === 1) {
+                    if (forPlayer) {
+                        this.player.heightMod = 150;
+                    } else {
+                        this.ai.heightMod = 150;
+                    }
+                    this.showCoolText("🏑 大 🏑");
+                } else if (type === 2) {
+                    this.balls.forEach(b => {
+                        b.vx *= 0.5;
+                        b.vy *= 0.5;
+                    });
+                    this.showCoolText("🌀 慢 🌀");
+                } else if (type === 3) {
+                    this.balls.forEach(b => {
+                        if ((forPlayer && b.vx > 0) || (!forPlayer && b.vx < 0)) {
+                            b.vx *= 0.3;
+                        }
+                    });
+                    this.showCoolText("🛡️ 削弱 🛡️");
+                }
+                this.shakeScreen(12);
+            },
+            
+            scoreEvent(ball, playerScored) {
+                ball.active = false;
+                AudioEngine.playScore(playerScored);
+                this.shakeScreen(25);
+                this.updateScoreUI();
+                
+                if (this.challenge.active && playerScored) {
+                    this.challenge.current++;
+                    document.getElementById('challenge-current').innerText = this.challenge.current;
+                    if (this.challenge.current >= this.challenge.target) {
+                        this.endChallenge(true);
+                    }
+                }
+                
+                this.comboCounter = 0;
+            },
+            
+            updateScoreUI() {
+                document.getElementById('player-score').innerText = this.player.score;
+                document.getElementById('ai-score').innerText = this.ai.score;
+            },
+            
+            updateCoinUI() {
+                document.getElementById('coin-display').innerText = `💰 ${gameState.coins}`;
+            },
+            
+            draw() {
+                this.ctx.fillStyle = `rgba(5, 5, 5, ${CONFIG.canvasAlpha})`;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                this.ctx.save();
+                if (this.shake > 0) {
+                    const shakeX = (Math.random() - 0.5) * this.shake * 0.6;
+                    const shakeY = (Math.random() - 0.5) * this.shake * 0.6;
+                    this.ctx.translate(shakeX, shakeY);
+                }
+                
+                // 优化：绘制网格使用缓存或减少调用
+                if (this.frameCount % 4 === 0) {
+                    this.ctx.strokeStyle = `rgba(20, 20, 20, 0.5)`;
+                    this.ctx.lineWidth = 0.5;
+                    for (let i = 0; i < this.width; i += 50) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(i, 0);
+                        this.ctx.lineTo(i, this.height);
+                        this.ctx.stroke();
+                    }
+                    for (let i = 0; i < this.height; i += 50) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, i);
+                        this.ctx.lineTo(this.width, i);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                this.ctx.strokeStyle = `rgba(0, 255, 255, 0.08)`;
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([15, 15]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.width / 2, 0);
+                this.ctx.lineTo(this.width / 2, this.height);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                this.player.draw(this.ctx);
+                this.ai.draw(this.ctx);
+                
+                // 优化：使用for循环
+                for (let i = 0; i < this.balls.length; i++) {
+                    this.balls[i].draw(this.ctx);
+                }
+                for (let i = 0; i < this.powerups.length; i++) {
+                    this.powerups[i].draw(this.ctx);
+                }
+                
+                this.ctx.globalAlpha = 1;
+                for (let i = 0; i < this.particles.length; i++) {
+                    this.particles[i].draw(this.ctx);
+                }
+                
+                this.ctx.restore();
+            },
+            
+            loop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(this.loop);
+            }
+        };
+        
+        game.init();
+    </script>
 </body>
 </html>
