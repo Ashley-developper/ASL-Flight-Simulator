@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speed Trans - Continuous</title>
+    <title>Zhanyi's translater</title>
     <style>
         body {
             margin: 0; background: #000; color: #fff;
@@ -13,22 +13,22 @@
         }
         #result {
             width: 90%; text-align: center;
-            font-size: clamp(2rem, 8vw, 6rem);
+            font-size: clamp(2rem, 6vw, 5rem);
             font-weight: 900; line-height: 1.2;
             word-wrap: break-word;
+            transition: opacity 0.1s;
         }
         #status {
             position: fixed; top: 30px; font-size: 14px;
             font-family: monospace; padding: 8px 16px; border-radius: 4px;
-            letter-spacing: 2px; transition: all 0.3s;
+            letter-spacing: 2px; transition: all 0.2s;
         }
-        /* 不同模式的状态颜色 */
         .mode-idle { border: 1px solid #555; color: #555; }
         .mode-zh { color: #00ffcc; border: 1px solid #00ffcc; }
         .mode-fr { color: #ff00ff; border: 1px solid #ff00ff; }
-        .recording { background: #ff3b30; color: #fff !important; border: none; animation: blink 1s infinite; }
+        .recording { background: #ff3b30; color: #fff !important; border: none; animation: blink 0.8s infinite; }
         
-        @keyframes blink { 50% { opacity: 0.6; } }
+        @keyframes blink { 50% { opacity: 0.7; } }
 
         #instructions {
             position: fixed; bottom: 30px; color: #444; font-size: 12px;
@@ -48,34 +48,34 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         
-        // 配置识别参数
+        // --- SPEED OPTIMIZATIONS ---
         recognition.interimResults = false; 
-        recognition.continuous = false; // 我们通过 onend 手动控制持续，这样更稳定
+        recognition.continuous = false; 
+        
+        // Warm up the voice engine to prevent initial lag
+        window.speechSynthesis.getVoices();
 
-        let activeMode = null; // 'zh-CN' 或 'fr-FR'
-        let isSpeaking = false; // 标记是否正在朗读
+        let activeMode = null; 
+        let isSpeaking = false; 
 
-        // --- 核心逻辑：翻译函数 ---
         async function translate(text) {
             statusEl.innerText = "THINKING...";
-            statusEl.className = activeMode === 'zh-CN' ? "mode-zh" : "mode-fr";
+            statusEl.classList.remove("recording");
             
             try {
-                const targetLang = activeMode === 'zh-CN' ? 'fr' : 'zh';
+                // Turbo Prompt: Minimal words for minimal latency
+                const targetLang = activeMode === 'zh-CN' ? 'French' : 'Chinese';
                 const response = await puter.ai.chat([
                     {
                         role: 'system', 
-                        content: targetLang === 'fr' 
-                            ? "Translate to French. ONLY output translation." 
-                            : "翻译成中文。只输出翻译结果。"
+                        content: `Translate to ${targetLang}. Concise. Only output result.`
                     },
                     { role: 'user', content: text }
-                ], { model: 'gpt-4o-mini' });
+                ], { model: 'gpt-4o-mini' }); // gpt-4o-mini is the fastest choice
 
                 const translation = typeof response === 'string' ? response : response.message.content;
                 resultEl.innerText = translation;
                 
-                // 朗读翻译结果
                 speak(translation);
 
             } catch (err) {
@@ -85,35 +85,36 @@
             }
         }
 
-        // --- 核心逻辑：语音合成 ---
         function speak(text) {
+            // Cancel current speech immediately for speed
+            window.speechSynthesis.cancel(); 
+            
             isSpeaking = true;
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = activeMode === 'zh-CN' ? 'fr-FR' : 'zh-CN';
-            utterance.rate = 1.0;
+            
+            // Speed up speech slightly (1.15 is natural but fast)
+            utterance.rate = 1.15;
+            utterance.pitch = 1.0;
 
             utterance.onend = () => {
                 isSpeaking = false;
-                statusEl.innerText = "READY FOR NEXT";
-                restartRecognition(); // 朗读完后，重新开启录音
+                statusEl.innerText = "READY";
+                restartRecognition();
             };
 
             window.speechSynthesis.speak(utterance);
         }
 
-        // --- 核心逻辑：重启录音 ---
         function restartRecognition() {
             if (activeMode && !isSpeaking) {
                 try {
                     recognition.lang = activeMode;
                     recognition.start();
-                } catch (e) {
-                    // 已经在运行中
-                }
+                } catch (e) { /* Already started */ }
             }
         }
 
-        // --- 识别回调 ---
         recognition.onstart = () => {
             statusEl.innerText = activeMode === 'zh-CN' ? "LISTENING (ZH)..." : "LISTENING (FR)...";
             statusEl.classList.add("recording");
@@ -122,41 +123,37 @@
         recognition.onresult = (e) => {
             const transcript = e.results[0][0].transcript;
             if (!transcript) return;
-            
-            resultEl.innerText = transcript; // 先显示识别到的原文
-            translate(transcript); // 触发翻译
+            resultEl.innerText = transcript; 
+            translate(transcript); 
         };
 
         recognition.onend = () => {
             statusEl.classList.remove("recording");
-            // 如果是因为说话中断且没有在翻译/朗读，则自动重启
             if (activeMode && !isSpeaking && statusEl.innerText !== "THINKING...") {
                 restartRecognition();
             }
         };
 
         recognition.onerror = (event) => {
-            console.log("Speech Error:", event.error);
             if (event.error !== 'no-speech') {
                 statusEl.innerText = "ERROR: " + event.error;
             }
+            restartRecognition();
         };
 
-        // --- 按键监听 ---
         window.addEventListener('keydown', (e) => {
             if (e.repeat) return;
             const key = e.key.toLowerCase();
 
-            if (key === 'v') {
-                activeMode = 'zh-CN';
-                recognition.stop(); // 先停止当前的，触发重新开始
-                restartRecognition();
-            } 
-            else if (key === 'b') {
-                activeMode = 'fr-FR';
+            if (key === 'v' || key === 'b') {
+                // Reset everything instantly on new key press
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                activeMode = (key === 'v') ? 'zh-CN' : 'fr-FR';
+                statusEl.className = (key === 'v') ? "mode-zh" : "mode-fr";
                 recognition.stop();
-                restartRecognition();
-            }
+                setTimeout(restartRecognition, 50); // Small buffer for clean restart
+            } 
             else if (key === 'escape') {
                 activeMode = null;
                 recognition.stop();
